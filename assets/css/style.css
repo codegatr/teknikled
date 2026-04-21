@@ -482,7 +482,7 @@ img { max-width: 100%; height: auto; display: block; }
 .neden-kart h3 { color: var(--t1); margin-bottom: 8px; font-size: 1.1rem; }
 .neden-kart p { color: var(--t3); font-size: 0.9rem; line-height: 1.55; margin: 0; }
 
-/* ---------- URUNLER ---------- */
+/* ---------- URUN KARTI (listeleme) ---------- */
 .urun-bolumu { padding-top: 80px; }
 .urun-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
 .urun-kart {
@@ -495,48 +495,250 @@ img { max-width: 100%; height: auto; display: block; }
   position: relative;
   display: flex;
   flex-direction: column;
-  text-decoration: none;
 }
 .urun-kart:hover {
-  transform: translateY(-8px);
+  transform: translateY(-6px);
   border-color: var(--border-hi);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(0, 212, 255, 0.15);
 }
-.urun-gorsel-kap {
+.urun-gorsel {
+  display: block;
   aspect-ratio: 4/3;
   overflow: hidden;
   background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
   position: relative;
+  text-decoration: none;
 }
-.urun-gorsel-kap::after {
+.urun-gorsel::after {
   content: '';
   position: absolute; inset: 0;
   background: linear-gradient(180deg, transparent 60%, rgba(5, 8, 19, 0.6) 100%);
   pointer-events: none;
 }
-.urun-kart img { width: 100%; height: 100%; object-fit: cover; transition: transform var(--tr-slow); }
-.urun-kart:hover img { transform: scale(1.06); }
-.urun-icerik { padding: 20px 22px 24px; }
-.urun-kart h3 { color: var(--t1); font-size: 1.05rem; margin-bottom: 6px; font-weight: 600; }
-.urun-kod {
-  font-family: var(--ff-mono);
-  font-size: 0.72rem;
-  color: var(--c-b);
-  letter-spacing: 0.05em;
-  margin-bottom: 10px;
-  display: block;
+.urun-gorsel img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform var(--tr-slow);
 }
-.urun-kart p, .urun-ozet { color: var(--t3); font-size: 0.85rem; line-height: 1.55; margin: 0; }
-.urun-badge { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-.urun-badge span {
+.urun-kart:hover .urun-gorsel img { transform: scale(1.06); }
+.urun-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem;
+  color: var(--t4);
+  background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
+}
+.urun-placeholder.buyuk { font-size: 6rem; }
+.urun-gvd {
+  padding: 20px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.urun-kat {
   font-family: var(--ff-mono);
   font-size: 0.7rem;
-  padding: 3px 8px;
-  background: rgba(0, 212, 255, 0.08);
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--c-b);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+}
+.urun-gvd h3 { color: var(--t1); font-size: 1.05rem; margin: 0; font-weight: 600; line-height: 1.3; }
+.urun-gvd h3 a { color: var(--t1); text-decoration: none; transition: color var(--tr); }
+.urun-gvd h3 a:hover { color: var(--c-b); text-shadow: 0 0 8px var(--c-b-glow); }
+.urun-etiket {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--ff-mono);
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.25);
   color: var(--c-b);
   border-radius: 4px;
   letter-spacing: 0.05em;
+  align-self: flex-start;
+}
+.urun-gvd p {
+  color: var(--t3);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin: 0;
+  flex: 1;
+}
+.urun-btn {
+  align-self: flex-start;
+  font-family: var(--ff-mono);
+  font-size: 0.78rem;
+  color: var(--c-b);
+  padding: 8px 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  position: relative;
+  margin-top: 4px;
+  transition: all var(--tr);
+}
+.urun-btn::after {
+  content: ' →';
+  display: inline-block;
+  transition: transform var(--tr);
+}
+.urun-btn:hover { color: var(--t1); text-shadow: 0 0 8px var(--c-b-glow); }
+.urun-btn:hover::after { transform: translateX(4px); }
+
+/* Eski/duplicate urun kart sinifi korumalari (urun-gorsel-kap, urun-icerik)
+   Bunlar artik kullanilmiyor ama baska yerden cagrilirsa stilsiz kalmasin */
+.urun-gorsel-kap { display: none; }
+.urun-icerik { display: block; }
+
+/* Bos durum */
+.bos {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--t3);
+  font-family: var(--ff-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  background: var(--bg-glass);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-l);
+}
+
+/* ---------- URUN DETAY ---------- */
+.urun-detay { padding-top: 40px; }
+.urun-detay-izgara {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 48px;
+  margin-bottom: 64px;
+  align-items: start;
+}
+.urun-galeri {
+  position: sticky;
+  top: 100px;
+}
+.urun-galeri .galeri-ana {
+  aspect-ratio: 1/1;
+  background: linear-gradient(135deg, var(--bg-2), var(--bg-3));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  margin-bottom: 12px;
+  padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.urun-galeri .galeri-ana img {
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto;
+  object-fit: contain;
+}
+.urun-galeri .galeri-kucuk {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+}
+.urun-bilgi { padding-top: 8px; }
+.urun-bilgi .urun-kod {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  color: var(--c-b);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 4px;
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+.urun-bilgi h1 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  margin-bottom: 20px;
+  line-height: 1.15;
+}
+.urun-etiketler {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.urun-etiketler .etiket {
+  font-family: var(--ff-mono);
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  background: rgba(0, 255, 153, 0.08);
+  border: 1px solid rgba(0, 255, 153, 0.25);
+  color: var(--c-g);
+  text-transform: none;
+}
+.urun-etiketler .etiket-mavi {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.25);
+  color: var(--c-b);
+}
+.urun-ozet {
+  color: var(--t2);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  padding: 18px 20px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--c-b);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.urun-btn-grubu {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.urun-aciklama,
+.urun-ozellikler {
+  margin-bottom: 48px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+.urun-aciklama h2,
+.urun-ozellikler h2,
+.iliskili-urun h2 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  position: relative;
+  padding-left: 16px;
+}
+.urun-aciklama h2::before,
+.urun-ozellikler h2::before,
+.iliskili-urun h2::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 6px; bottom: 6px;
+  width: 3px;
+  background: linear-gradient(180deg, var(--c-r), var(--c-g), var(--c-b));
+  border-radius: 2px;
+}
+.urun-aciklama .icerik {
+  color: var(--t2);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.urun-aciklama .icerik p { margin-bottom: 14px; }
+.urun-aciklama .icerik ul,
+.urun-aciklama .icerik ol { margin: 14px 0 14px 24px; }
+.urun-aciklama .icerik li { margin-bottom: 6px; }
+.iliskili-urun {
+  margin-top: 64px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- REFERANS DETAY UST ---------- */
+.referans-ust {
+  margin-bottom: 32px;
 }
 
 /* ---------- REFERANSLAR ---------- */
@@ -1342,4 +1544,20 @@ html[dir="rtl"] .tl-slide-kutusu::before { left: auto; right: calc(4vw - 18px); 
   .il-form { padding: 28px 22px; }
   .sayfa-bas { margin-bottom: 32px; padding-bottom: 24px; }
   .bolum-hepsi { position: static; display: block; margin-top: 12px; }
+}
+
+/* Minor modifiers */
+.ana-icerik { display: block; min-height: 50vh; }
+.alt-blok-marka { grid-column: auto; }
+.urun-rozet {
+  display: inline-block;
+  font-family: var(--ff-mono);
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  background: rgba(255, 59, 107, 0.12);
+  border: 1px solid rgba(255, 59, 107, 0.3);
+  color: var(--c-r);
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
