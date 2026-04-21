@@ -14,15 +14,17 @@ class I18n {
         if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
         $izinli = ['tr', 'en', 'ar'];
-        $dil = DEFAULT_LANG;
 
-        // Oncelik: URL segmenti > session > default
         $rota = $_GET['rota'] ?? '';
         $ilk  = explode('/', $rota)[0] ?? '';
+
+        // URL prefix'i her zaman belirleyicidir.
+        // Prefix varsa -> o dil; prefix yoksa -> DAIMA varsayilan dil (TR).
+        // Boylece "TR'ye don" bayragi calisir (cunku TR URL'si prefix'siz olur).
         if (in_array($ilk, $izinli, true)) {
             $dil = $ilk;
-        } elseif (isset($_SESSION['lang']) && in_array($_SESSION['lang'], $izinli, true)) {
-            $dil = $_SESSION['lang'];
+        } else {
+            $dil = DEFAULT_LANG;
         }
 
         self::$aktif = $dil;
