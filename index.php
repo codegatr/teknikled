@@ -379,7 +379,106 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     $lang = dil();
     $heroBaslik = ayar('hero_baslik_' . $lang, ayar('hero_baslik_tr'));
     $heroAlt    = ayar('hero_alt_' . $lang, ayar('hero_alt_tr'));
+
+    // Slider kayitlari (aktif olanlar)
+    try {
+        $sliderler = db_liste('SELECT * FROM slider WHERE aktif = 1 ORDER BY sira ASC, id ASC');
+    } catch (Throwable $e) {
+        $sliderler = [];  // slider tablosu yoksa sessiz gec
+    }
+    $baslikKol   = 'baslik_' . $lang;
+    $aciklamaKol = 'aciklama_' . $lang;
+    $butonKol    = 'buton_metin_' . $lang;
     ?>
+    <?php if (!empty($sliderler)): ?>
+    <!-- SLIDER -->
+    <section class="tl-slider" id="tlSlider">
+      <div class="tl-slider-ic">
+        <?php foreach ($sliderler as $i => $s):
+            $baslik   = $s[$baslikKol]   ?? $s['baslik_tr']   ?? '';
+            $aciklama = $s[$aciklamaKol] ?? $s['aciklama_tr'] ?? '';
+            $butonMet = $s[$butonKol]    ?? $s['buton_metin_tr'] ?? '';
+        ?>
+          <div class="tl-slide <?= $i === 0 ? 'aktif' : '' ?>" data-idx="<?= $i ?>">
+            <img src="<?= e(upload($s['gorsel'])) ?>" alt="<?= e($baslik) ?>" class="tl-slide-gorsel" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>">
+            <div class="tl-slide-icerik">
+              <div class="tl-slide-kutusu">
+                <?php if ($baslik): ?><h2><?= e($baslik) ?></h2><?php endif; ?>
+                <?php if ($aciklama): ?><p><?= e($aciklama) ?></p><?php endif; ?>
+                <?php if ($butonMet && $s['buton_url']): ?>
+                  <a href="<?= e($s['buton_url']) ?>" class="btn btn-renk"><?= e($butonMet) ?></a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+
+        <?php if (count($sliderler) > 1): ?>
+        <button class="tl-slider-ok tl-slider-ok-sol" aria-label="Onceki">‹</button>
+        <button class="tl-slider-ok tl-slider-ok-sag" aria-label="Sonraki">›</button>
+        <div class="tl-slider-noktalar">
+          <?php foreach ($sliderler as $i => $_): ?>
+            <button class="tl-nokta <?= $i === 0 ? 'aktif' : '' ?>" data-idx="<?= $i ?>" aria-label="Slide <?= $i + 1 ?>"></button>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+      </div>
+    </section>
+
+    <script>
+    (function() {
+      var slider = document.getElementById('tlSlider');
+      if (!slider) return;
+      var slideler = slider.querySelectorAll('.tl-slide');
+      var noktalar = slider.querySelectorAll('.tl-nokta');
+      if (slideler.length <= 1) return;
+
+      var mevcut = 0;
+      var zamanli;
+
+      function goster(idx) {
+        if (idx < 0) idx = slideler.length - 1;
+        if (idx >= slideler.length) idx = 0;
+        slideler[mevcut].classList.remove('aktif');
+        if (noktalar[mevcut]) noktalar[mevcut].classList.remove('aktif');
+        mevcut = idx;
+        slideler[mevcut].classList.add('aktif');
+        if (noktalar[mevcut]) noktalar[mevcut].classList.add('aktif');
+      }
+      function ileri()  { goster(mevcut + 1); }
+      function geri()   { goster(mevcut - 1); }
+      function sifirla() {
+        clearInterval(zamanli);
+        zamanli = setInterval(ileri, 5500);
+      }
+
+      var sol = slider.querySelector('.tl-slider-ok-sol');
+      var sag = slider.querySelector('.tl-slider-ok-sag');
+      if (sol) sol.addEventListener('click', function(){ geri(); sifirla(); });
+      if (sag) sag.addEventListener('click', function(){ ileri(); sifirla(); });
+
+      noktalar.forEach(function(n) {
+        n.addEventListener('click', function() {
+          goster(parseInt(n.dataset.idx, 10)); sifirla();
+        });
+      });
+
+      // Swipe destegi (mobilde)
+      var baslangicX = 0;
+      slider.addEventListener('touchstart', function(e) { baslangicX = e.touches[0].clientX; }, {passive: true});
+      slider.addEventListener('touchend', function(e) {
+        var fark = e.changedTouches[0].clientX - baslangicX;
+        if (Math.abs(fark) > 50) {
+          if (fark < 0) ileri(); else geri();
+          sifirla();
+        }
+      });
+
+      sifirla();
+    })();
+    </script>
+    <?php endif; ?>
+
     <section class="hero">
       <div class="sarmal hero-sarmal">
         <div class="hero-metin">

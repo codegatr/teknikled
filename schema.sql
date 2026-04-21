@@ -223,6 +223,31 @@ CREATE TABLE `log_kayitlari` (
     INDEX `idx_olay` (`olay`, `olusturma`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `slider` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `baslik_tr` VARCHAR(200) NULL,
+    `baslik_en` VARCHAR(200) NULL,
+    `baslik_ar` VARCHAR(200) NULL,
+    `aciklama_tr` TEXT NULL,
+    `aciklama_en` TEXT NULL,
+    `aciklama_ar` TEXT NULL,
+    `gorsel` VARCHAR(255) NOT NULL,
+    `buton_metin_tr` VARCHAR(100) NULL,
+    `buton_metin_en` VARCHAR(100) NULL,
+    `buton_metin_ar` VARCHAR(100) NULL,
+    `buton_url` VARCHAR(255) NULL,
+    `sira` INT NOT NULL DEFAULT 0,
+    `aktif` TINYINT(1) NOT NULL DEFAULT 1,
+    `olusturma` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_sira_aktif` (`sira`, `aktif`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `_migrations` (
+    `ad` VARCHAR(100) NOT NULL PRIMARY KEY,
+    `uygulama_tarihi` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `sonuc` VARCHAR(20) NOT NULL DEFAULT 'basarili'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 
@@ -424,3 +449,26 @@ INSERT INTO `ayarlar` (`anahtar`, `deger`, `grup`, `tip`, `aciklama`) VALUES
 -- Varsayilan yonetici (sifre: admin123 - kurulumda degisir)
 INSERT INTO `yoneticiler` (`ad_soyad`, `kullanici_adi`, `eposta`, `sifre_hash`, `rol`, `aktif`) VALUES
 ('Sistem Yoneticisi', 'admin', 'admin@teknikled.com', '$2y$10$8K1p.3zD8iQ7WQ9YvN0bPeYZKY4J3v1x.VzKz7HvQXqB0YnZpXrgK', 'super', 1);
+
+-- Slider seed (4 kayit)
+INSERT INTO `slider` (`baslik_tr`, `baslik_en`, `baslik_ar`, `aciklama_tr`, `aciklama_en`, `aciklama_ar`, `gorsel`, `buton_metin_tr`, `buton_metin_en`, `buton_metin_ar`, `buton_url`, `sira`, `aktif`) VALUES
+('Modüler Karkas Sistemi', 'Modular Frame System', 'نظام الإطار المعياري',
+ 'Tasarım tescilli, 1.20 mm galvaniz sac, dünyada bir ilk modüler karkas sistemi.',
+ 'Design-registered, 1.20 mm galvanized steel, a world-first modular frame system.',
+ 'إطار معياري مسجل التصميم، فولاذ مجلفن 1.20 ملم.',
+ 'slider/01-karkas.png', 'İncele', 'Explore', 'استكشف', '/kategori/moduler-karkas', 1, 1),
+('LED Masalar', 'LED Tables', 'طاولات LED',
+ '96x192, 96x224, 96x256, 96x288 ve özel ölçülerde P1.86/P2.5 LED masa üretimi.',
+ '96x192, 96x224, 96x256, 96x288 and custom dimensions with P1.86/P2.5 LED tables.',
+ 'طاولات LED بمقاسات مخصصة.',
+ 'slider/02-led-masa.png', 'Modelleri Gör', 'View Models', 'عرض النماذج', '/kategori/led-masa', 2, 1),
+('LED Kürsü', 'LED Podium', 'منبر LED',
+ 'P1.86 ve P2.5 LED modül seçenekli dijital kürsü. Konferans, toplantı ve fuar salonları için.',
+ 'Digital podium with P1.86 and P2.5 LED module options.',
+ 'منبر رقمي.',
+ 'slider/03-led-kursu.png', 'Teklif Al', 'Get Quote', 'اطلب عرضاً', '/teklif', 3, 1),
+('Metal Kürsü', 'Metal Podium', 'منبر معدني',
+ 'Şık, dayanıklı, deri kaplama. Tasarım tescilli metal kürsü üretimi.',
+ 'Sleek, durable, leather-coated. Design-registered metal podium.',
+ 'منبر معدني متين.',
+ 'slider/04-metal-kursu.png', 'Detaylar', 'Details', 'التفاصيل', '/urun/metal-kursu-standart', 4, 1);

@@ -75,6 +75,9 @@ $aksiyonlar = [
     'referanslar'  => '_yp_referanslar',
     'referans'     => '_yp_referans_form',
     'referans-sil' => '_yp_referans_sil',
+    'slider'       => '_yp_slider',
+    'slider-form'  => '_yp_slider_form',
+    'slider-sil'   => '_yp_slider_sil',
     'teklifler'    => '_yp_teklifler',
     'teklif'       => '_yp_teklif_detay',
     'teklif-sil'   => '_yp_teklif_sil',
@@ -111,6 +114,7 @@ function _yp_layout_bas(string $is): void {
         'urunler'     => ['📦', 'Urunler'],
         'kategoriler' => ['🏷', 'Kategoriler'],
         'referanslar' => ['🏢', 'Referanslar'],
+        'slider'      => ['🎞', 'Slider'],
         'teklifler'   => ['📋', 'Teklifler', _yp_teklif_yeni_sayi()],
         'mesajlar'    => ['✉', 'Mesajlar', _yp_mesaj_okunmamis_sayi()],
         'sayfalar'    => ['📄', 'Sayfalar'],
@@ -1097,6 +1101,158 @@ function _yp_referans_sil(): void {
 }
 
 // =================================================================
+// 5b) SLIDER
+// =================================================================
+function _yp_slider(): void {
+    $liste = db_liste('SELECT * FROM slider ORDER BY sira ASC, id DESC');
+    ?>
+    <div class="yp-panel">
+      <div class="yp-panel-bas">
+        <h2>🎞 Slider</h2>
+        <a href="?is=slider-form" class="yp-btn">+ Yeni Slider</a>
+      </div>
+      <div class="yp-tablo-kap">
+        <?php if (empty($liste)): ?>
+          <p style="padding:30px; text-align:center; color:#64748b;">Henuz slider yok.</p>
+        <?php else: ?>
+        <table class="yp-tablo">
+          <thead><tr><th>#</th><th>Gorsel</th><th>Baslik</th><th>Buton</th><th>Sira</th><th>Durum</th><th>Islem</th></tr></thead>
+          <tbody>
+          <?php foreach ($liste as $s): ?>
+            <tr>
+              <td><?= (int)$s['id'] ?></td>
+              <td><?php if ($s['gorsel']): ?><img src="<?= e(upload($s['gorsel'])) ?>" class="yp-tb-resim" style="width:80px;height:auto;"><?php else: ?><div style="width:80px;height:48px;background:#f1f5f9;border-radius:6px;"></div><?php endif; ?></td>
+              <td><strong><?= e($s['baslik_tr'] ?: '-') ?></strong><?php if ($s['aciklama_tr']): ?><br><small style="color:#64748b;"><?= e(mb_substr($s['aciklama_tr'], 0, 60)) ?>...</small><?php endif; ?></td>
+              <td><?php if ($s['buton_metin_tr']): ?><code><?= e($s['buton_metin_tr']) ?></code><br><small><?= e($s['buton_url'] ?: '-') ?></small><?php else: ?>-<?php endif; ?></td>
+              <td><?= (int)$s['sira'] ?></td>
+              <td><span class="yp-rozet <?= $s['aktif'] ? 'yp-rozet-aktif' : 'yp-rozet-pasif' ?>"><?= $s['aktif'] ? 'Aktif' : 'Pasif' ?></span></td>
+              <td class="yp-tb-islem">
+                <a href="?is=slider-form&id=<?= (int)$s['id'] ?>" class="yp-btn yp-btn-kucuk yp-btn-anahat">Duzenle</a>
+                <form method="POST" action="?is=slider-sil&id=<?= (int)$s['id'] ?>" data-onay="Slider kaydini silmek istediginizden emin misiniz?" style="display:inline;">
+                  <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                  <button class="yp-btn yp-btn-kucuk yp-btn-sil">Sil</button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <?php endif; ?>
+      </div>
+    </div>
+    <?php
+}
+
+function _yp_slider_form(): void {
+    $id = (int)($_GET['id'] ?? 0);
+    $s = $id ? db_satir('SELECT * FROM slider WHERE id = :id', ['id' => $id]) : [];
+    if ($id && !$s) { flash_ekle('hata', 'Slider bulunamadi'); yonlendir(SITE_URL . '/yonetim.php?is=slider'); }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); }
+        else {
+            $veri = [
+                'baslik_tr'      => trim($_POST['baslik_tr'] ?? '') ?: null,
+                'baslik_en'      => trim($_POST['baslik_en'] ?? '') ?: null,
+                'baslik_ar'      => trim($_POST['baslik_ar'] ?? '') ?: null,
+                'aciklama_tr'    => trim($_POST['aciklama_tr'] ?? '') ?: null,
+                'aciklama_en'    => trim($_POST['aciklama_en'] ?? '') ?: null,
+                'aciklama_ar'    => trim($_POST['aciklama_ar'] ?? '') ?: null,
+                'buton_metin_tr' => trim($_POST['buton_metin_tr'] ?? '') ?: null,
+                'buton_metin_en' => trim($_POST['buton_metin_en'] ?? '') ?: null,
+                'buton_metin_ar' => trim($_POST['buton_metin_ar'] ?? '') ?: null,
+                'buton_url'      => trim($_POST['buton_url'] ?? '') ?: null,
+                'sira'           => (int)($_POST['sira'] ?? 0),
+                'aktif'          => !empty($_POST['aktif']) ? 1 : 0,
+            ];
+
+            if (!empty($_FILES['gorsel']['tmp_name'])) {
+                $rz = dosya_yukle($_FILES['gorsel'], 'slider');
+                if (!empty($rz['hata'])) flash_ekle('hata', 'Gorsel: ' . $rz['hata']);
+                else $veri['gorsel'] = $rz['yol'];
+            } elseif ($id && !empty($s['gorsel'])) {
+                // Mevcut gorsel korunur (veri dizisine eklemiyoruz)
+            } else {
+                flash_ekle('hata', 'Slider icin gorsel gereklidir.');
+                yonlendir(SITE_URL . '/yonetim.php?is=slider-form' . ($id ? '&id=' . $id : ''));
+            }
+
+            try {
+                if ($id) { db_guncelle('slider', $veri, 'id = :id', ['id' => $id]); flash_ekle('ok', 'Slider guncellendi.'); log_yaz('slider_guncelle', 'ID: ' . $id, Auth::mevcutAdmin()['id']); }
+                else { $id = db_ekle('slider', $veri); flash_ekle('ok', 'Slider eklendi.'); log_yaz('slider_ekle', 'ID: ' . $id, Auth::mevcutAdmin()['id']); }
+                yonlendir(SITE_URL . '/yonetim.php?is=slider');
+            } catch (Throwable $e) { flash_ekle('hata', 'Kayit hatasi: ' . $e->getMessage()); }
+        }
+    }
+    ?>
+    <div class="yp-panel">
+      <div class="yp-panel-bas"><h2>🎞 Slider <?= $id ? 'Duzenle' : 'Ekle' ?></h2></div>
+      <form method="POST" enctype="multipart/form-data" class="yp-form">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+
+        <div class="yp-alan-grup">
+          <h3>Gorsel</h3>
+          <?php if ($id && !empty($s['gorsel'])): ?>
+            <img src="<?= e(upload($s['gorsel'])) ?>" style="max-width:300px; height:auto; border-radius:8px; margin-bottom:10px;">
+          <?php endif; ?>
+          <label>Slider Gorseli (onerilen: 1600x600 px)</label>
+          <input type="file" name="gorsel" accept="image/*">
+        </div>
+
+        <div class="yp-alan-grup">
+          <h3>Baslik</h3>
+          <div class="yp-kolon-3">
+            <div class="yp-alan"><label>TR</label><input type="text" name="baslik_tr" value="<?= e($s['baslik_tr'] ?? '') ?>" maxlength="200"></div>
+            <div class="yp-alan"><label>EN</label><input type="text" name="baslik_en" value="<?= e($s['baslik_en'] ?? '') ?>" maxlength="200"></div>
+            <div class="yp-alan"><label>AR</label><input type="text" name="baslik_ar" value="<?= e($s['baslik_ar'] ?? '') ?>" maxlength="200" dir="rtl"></div>
+          </div>
+        </div>
+
+        <div class="yp-alan-grup">
+          <h3>Aciklama</h3>
+          <div class="yp-kolon-3">
+            <div class="yp-alan"><label>TR</label><textarea name="aciklama_tr" rows="3"><?= e($s['aciklama_tr'] ?? '') ?></textarea></div>
+            <div class="yp-alan"><label>EN</label><textarea name="aciklama_en" rows="3"><?= e($s['aciklama_en'] ?? '') ?></textarea></div>
+            <div class="yp-alan"><label>AR</label><textarea name="aciklama_ar" rows="3" dir="rtl"><?= e($s['aciklama_ar'] ?? '') ?></textarea></div>
+          </div>
+        </div>
+
+        <div class="yp-alan-grup">
+          <h3>Buton (opsiyonel)</h3>
+          <div class="yp-kolon-3">
+            <div class="yp-alan"><label>Buton Metni TR</label><input type="text" name="buton_metin_tr" value="<?= e($s['buton_metin_tr'] ?? '') ?>" maxlength="100" placeholder="Detay, Incele, Teklif Al..."></div>
+            <div class="yp-alan"><label>Buton Metni EN</label><input type="text" name="buton_metin_en" value="<?= e($s['buton_metin_en'] ?? '') ?>" maxlength="100"></div>
+            <div class="yp-alan"><label>Buton Metni AR</label><input type="text" name="buton_metin_ar" value="<?= e($s['buton_metin_ar'] ?? '') ?>" maxlength="100" dir="rtl"></div>
+          </div>
+          <div class="yp-alan"><label>Buton URL</label><input type="text" name="buton_url" value="<?= e($s['buton_url'] ?? '') ?>" maxlength="255" placeholder="/kategori/led-masa veya https://..."></div>
+        </div>
+
+        <div class="yp-kolon-2">
+          <div class="yp-alan"><label>Sira</label><input type="number" name="sira" value="<?= (int)($s['sira'] ?? 0) ?>"></div>
+          <div class="yp-alan"><label><input type="checkbox" name="aktif" value="1" <?= !isset($s['aktif']) || $s['aktif'] ? 'checked' : '' ?>> Aktif</label></div>
+        </div>
+
+        <div class="yp-form-altlik">
+          <button type="submit" class="yp-btn">Kaydet</button>
+          <a href="?is=slider" class="yp-btn yp-btn-anahat">Iptal</a>
+        </div>
+      </form>
+    </div>
+    <?php
+}
+
+function _yp_slider_sil(): void {
+    if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); yonlendir(SITE_URL . '/yonetim.php?is=slider'); }
+    $id = (int)($_GET['id'] ?? 0);
+    try {
+        db_sil('slider', 'id = :id', ['id' => $id]);
+        flash_ekle('ok', 'Slider silindi.');
+        log_yaz('slider_sil', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+    } catch (Throwable $e) { flash_ekle('hata', 'Silme hatasi: ' . $e->getMessage()); }
+    yonlendir(SITE_URL . '/yonetim.php?is=slider');
+}
+
+// =================================================================
 // 6) TEKLIFLER
 // =================================================================
 function _yp_teklifler(): void {
@@ -2002,8 +2158,22 @@ function _yp_guncelle(): void {
                     $uyg = Updater::uygula($ind['dosya']);
                     if (empty($uyg['basari'])) { flash_ekle('hata', 'Uygulama: ' . ($uyg['hata'] ?? 'bilinmeyen hata')); }
                     else {
-                        flash_ekle('ok', 'Guncelleme uygulandi. ' . (int)($uyg['kopyalanan'] ?? 0) . ' dosya yenilendi. Lutfen panelinizi yenileyin.');
-                        log_yaz('sistem_guncelle', 'Dosya: ' . (int)($uyg['kopyalanan'] ?? 0), Auth::mevcutAdmin()['id']);
+                        // Migration sonucu
+                        $mig = $uyg['migration'] ?? ['uygulanan' => [], 'atlanan' => [], 'hata' => null];
+                        $migMsj = '';
+                        if (!empty($mig['uygulanan'])) {
+                            $migMsj .= ' ' . count($mig['uygulanan']) . ' migration uygulandi (' . implode(', ', $mig['uygulanan']) . ').';
+                        }
+                        if (!empty($mig['hata'])) {
+                            $migMsj .= ' MIGRATION HATASI: ' . $mig['hata'];
+                        }
+                        $bildirim = 'Guncelleme uygulandi. ' . (int)($uyg['kopyalanan'] ?? 0) . ' dosya yenilendi.' . $migMsj;
+                        if (!empty($mig['hata'])) {
+                            flash_ekle('hata', $bildirim);
+                        } else {
+                            flash_ekle('ok', $bildirim . ' Lutfen panelinizi yenileyin.');
+                        }
+                        log_yaz('sistem_guncelle', 'Dosya: ' . (int)($uyg['kopyalanan'] ?? 0) . ' | Migration: ' . count($mig['uygulanan'] ?? []), Auth::mevcutAdmin()['id']);
                     }
                 }
             } catch (Throwable $e) { flash_ekle('hata', 'Hata: ' . $e->getMessage()); }

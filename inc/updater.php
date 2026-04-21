@@ -87,7 +87,7 @@ class Updater {
         return ['basari' => true, 'dosya' => $hedef];
     }
 
-    /** ZIP'i cikar ve uygula */
+    /** ZIP'i cikar ve uygula (dosyalar + migrationlar) */
     public static function uygula(string $zipDosya): array {
         if (!class_exists('ZipArchive')) {
             return ['basari' => false, 'hata' => 'ZipArchive sinifi yok'];
@@ -113,11 +113,93 @@ class Updater {
         // Kopyala (korunan dosyalar haric)
         $sayac = self::kopyala($kaynak, __DIR__ . '/..');
 
+        // Migrationlari uygula (dosya kopyalamasindan SONRA, cunku yeni migration
+        // dosyalari kopyalama sirasinda gelmis olur)
+        $migrationSonuc = self::migrationlariUygula();
+
         // Temizle
         self::sil($tmp);
         @unlink($zipDosya);
 
-        return ['basari' => true, 'kopyalanan' => $sayac];
+        return [
+            'basari'      => true,
+            'kopyalanan'  => $sayac,
+            'migration'   => $migrationSonuc,
+        ];
+    }
+
+    /**
+     * migrations/ klasorundeki SQL dosyalarini sirali calistirir.
+     * _migrations tablosunda takip edilir, iki kez calismaz.
+     * Dosya adlari: v0.1.3.sql, v0.1.4.sql, v0.1.4-hotfix.sql gibi olmali.
+     * Donus: ['uygulanan' => [...], 'atlanan' => [...], 'hata' => '...' | null]
+     */
+    public static function migrationlariUygula(): array {
+        $sonuc = ['uygulanan' => [], 'atlanan' => [], 'hata' => null];
+
+        $dir = __DIR__ . '/../migrations';
+        if (!is_dir($dir)) {
+            return $sonuc;  // Migration klasoru yoksa sessiz gec
+        }
+
+        // DB ve _migrations tablosu
+        try {
+            if (!function_exists('db')) {
+                require_once __DIR__ . '/db.php';
+            }
+            db()->exec(
+                "CREATE TABLE IF NOT EXISTS `_migrations` (
+                    `ad` VARCHAR(100) NOT NULL PRIMARY KEY,
+                    `uygulama_tarihi` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `sonuc` VARCHAR(20) NOT NULL DEFAULT 'basarili'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+        } catch (Throwable $e) {
+            $sonuc['hata'] = 'Migration tablosu olusturulamadi: ' . $e->getMessage();
+            return $sonuc;
+        }
+
+        $dosyalar = glob($dir . '/*.sql') ?: [];
+        sort($dosyalar);  // v0.1.3.sql < v0.1.4.sql < v0.1.5.sql
+
+        foreach ($dosyalar as $yol) {
+            $ad = basename($yol);
+
+            // Zaten uygulanmis mi?
+            try {
+                $var = db_deger('SELECT 1 FROM `_migrations` WHERE `ad` = :a', ['a' => $ad]);
+            } catch (Throwable $e) {
+                $sonuc['hata'] = 'Migration sorgu hatasi: ' . $e->getMessage();
+                return $sonuc;
+            }
+
+            if ($var) {
+                $sonuc['atlanan'][] = $ad;
+                continue;
+            }
+
+            $sql = @file_get_contents($yol);
+            if (!$sql) {
+                $sonuc['atlanan'][] = $ad . ' (bos dosya)';
+                continue;
+            }
+
+            try {
+                // Native PDO driver multi-statement destekler (emulate=false oldugunda da)
+                db()->exec($sql);
+                db_ekle('_migrations', ['ad' => $ad, 'sonuc' => 'basarili']);
+                $sonuc['uygulanan'][] = $ad;
+            } catch (Throwable $e) {
+                // Hatayi tabloya da yaz ki kullanici gorebilsin
+                try {
+                    db_ekle('_migrations', ['ad' => $ad, 'sonuc' => 'hata']);
+                } catch (Throwable $_) {}
+                $sonuc['hata'] = $ad . ' hatasi: ' . $e->getMessage();
+                return $sonuc;  // Hatali migration'da dur, sonrakileri calistirma
+            }
+        }
+
+        return $sonuc;
     }
 
     private static function kopyala(string $kaynak, string $hedef): int {

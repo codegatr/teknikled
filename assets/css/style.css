@@ -928,3 +928,135 @@ img { max-width: 100%; height: auto; display: block; }
   .hero-rgb span { padding: 10px 14px; border-radius: 10px; }
   .wa-yuzen { width: 48px; height: 48px; bottom: 16px; right: 16px; }
 }
+
+/* ============================================
+   SLIDER (v0.1.4)
+   ============================================ */
+.tl-slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #0f172a;
+  margin-bottom: 0;
+}
+.tl-slider-ic {
+  position: relative;
+  width: 100%;
+  height: clamp(320px, 50vw, 560px);
+  overflow: hidden;
+}
+.tl-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  pointer-events: none;
+}
+.tl-slide.aktif {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 2;
+}
+.tl-slide-gorsel {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.tl-slide-icerik {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 40px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 50%, rgba(15, 23, 42, 0) 100%);
+}
+.tl-slide-kutusu {
+  max-width: 560px;
+  color: #fff;
+  padding-left: 4vw;
+}
+.tl-slide-kutusu h2 {
+  font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+}
+.tl-slide-kutusu p {
+  font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+  line-height: 1.55;
+  margin: 0 0 22px;
+  color: #e2e8f0;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+  max-width: 520px;
+}
+.tl-slider-ok {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+  transition: background 200ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-slider-ok:hover { background: rgba(255, 255, 255, 0.35); }
+.tl-slider-ok-sol { left: 20px; }
+.tl-slider-ok-sag { right: 20px; }
+.tl-slider-noktalar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.tl-nokta {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: background 200ms, width 200ms;
+  padding: 0;
+}
+.tl-nokta.aktif {
+  background: #fff;
+  width: 28px;
+  border-radius: 5px;
+}
+
+/* RTL: slide metni sagdan hizalansin */
+html[dir="rtl"] .tl-slide-icerik {
+  justify-content: flex-end;
+  background: linear-gradient(270deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.35) 50%, rgba(15, 23, 42, 0) 100%);
+}
+html[dir="rtl"] .tl-slide-kutusu {
+  padding-left: 0;
+  padding-right: 4vw;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .tl-slider-ic { height: clamp(260px, 80vw, 360px); }
+  .tl-slide-icerik { padding: 20px; }
+  .tl-slide-kutusu { padding-left: 0; }
+  .tl-slider-ok { width: 36px; height: 36px; font-size: 22px; }
+  .tl-slider-ok-sol { left: 10px; }
+  .tl-slider-ok-sag { right: 10px; }
+}
