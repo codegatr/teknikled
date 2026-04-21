@@ -112,9 +112,9 @@ if ($ilk === '') {
     $metaBaslik = ayar('firma_adi') . ' - ' . ayar('slogan_' . $lang, ayar('slogan_tr'));
     $metaAciklama = ayar('hero_alt_' . $lang, ayar('hero_alt_tr'));
 }
-elseif ($ilk === 'urunler') {
+elseif ($ilk === 'urunler' || $ilk === 'kategori') {
     if ($iki !== '') {
-        // Kategori urunleri
+        // Kategori urunleri (/urunler/{slug} veya /kategori/{slug} calisir)
         $kat = db_satir('SELECT * FROM kategoriler WHERE slug = :s AND aktif = 1', ['s' => $iki]);
         if (!$kat) { $tipi = '404'; }
         else {
