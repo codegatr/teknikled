@@ -269,8 +269,13 @@ $langHtml = dil();
 <!-- ANA BASLIK -->
 <header class="site-bas">
   <div class="sarmal bas-sarmal">
-    <a href="<?= e(url()) ?>" class="logo-alan">
-      <img src="<?= e(asset('img/logo.png')) ?>" alt="<?= e(ayar('firma_adi', 'TeknikLED')) ?>">
+    <a href="<?= e(url()) ?>" class="logo-alan" aria-label="<?= e(ayar('firma_adi', 'TeknikLED')) ?>">
+      <span class="logo-txt">
+        <span class="logo-satir">
+          <span class="logo-teknik">Teknik</span><span class="logo-led"><span class="rgb-r">L</span><span class="rgb-g">E</span><span class="rgb-b">D</span></span>
+        </span>
+        <span class="logo-cizgi"></span>
+      </span>
     </a>
     <nav class="ana-menu" id="anaMenu">
       <a href="<?= e(url()) ?>" class="<?= $tipi === 'anasayfa' ? 'aktif' : '' ?>"><?= e(t('menu.anasayfa')) ?></a>
@@ -307,8 +312,13 @@ switch ($tipi) {
 <!-- FOOTER -->
 <footer class="site-alt">
   <div class="sarmal alt-sarmal">
-    <div class="alt-blok">
-      <img src="<?= e(asset('img/logo.png')) ?>" alt="<?= e(ayar('firma_adi')) ?>" class="alt-logo">
+    <div class="alt-blok alt-blok-marka">
+      <div class="logo-txt logo-txt-buyuk">
+        <span class="logo-satir">
+          <span class="logo-teknik">Teknik</span><span class="logo-led"><span class="rgb-r">L</span><span class="rgb-g">E</span><span class="rgb-b">D</span></span>
+        </span>
+        <span class="logo-cizgi"></span>
+      </div>
       <p class="alt-slogan"><?= e(ayar('slogan_' . $langHtml, ayar('slogan_tr'))) ?></p>
     </div>
     <div class="alt-blok">

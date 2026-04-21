@@ -586,31 +586,162 @@ img { max-width: 100%; height: auto; display: block; }
 .cta-bandi p { color: var(--t2); font-size: 1.1rem; margin-bottom: 36px; max-width: 600px; margin-left: auto; margin-right: auto; }
 .cta-bandi .btn { margin: 0 8px 12px; }
 
+/* ---------- LOGO (CSS Text) ---------- */
+.logo-alan {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  line-height: 1;
+}
+.logo-alan:hover { text-decoration: none; }
+.logo-txt {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--ff-tech);
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.logo-satir { display: inline-flex; align-items: baseline; gap: 2px; }
+.logo-teknik {
+  color: var(--t1);
+  font-weight: 700;
+}
+.logo-led {
+  display: inline-flex;
+  gap: 1px;
+  margin-left: 4px;
+  font-weight: 800;
+}
+.logo-led .rgb-r { color: var(--c-r); text-shadow: 0 0 12px var(--c-r-glow); }
+.logo-led .rgb-g { color: var(--c-g); text-shadow: 0 0 12px var(--c-g-glow); }
+.logo-led .rgb-b { color: var(--c-b); text-shadow: 0 0 12px var(--c-b-glow); }
+.logo-cizgi {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--c-r), var(--c-g), var(--c-b));
+  border-radius: 1px;
+  opacity: 0.85;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
+}
+.logo-txt-buyuk { font-size: 2.4rem; }
+.logo-txt-buyuk .logo-led { margin-left: 6px; }
+.logo-txt-buyuk .logo-cizgi { margin-top: 6px; }
+
 /* ---------- FOOTER ---------- */
-footer {
+footer.site-alt {
   background: var(--bg-0);
   color: var(--t3);
-  padding: 72px 0 28px;
+  padding: 72px 0 0;
   border-top: 1px solid var(--border);
   position: relative;
+  margin-top: 40px;
 }
-footer::before {
+footer.site-alt::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg, transparent, var(--c-b), transparent);
   opacity: 0.5;
 }
-.footer-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 40px; margin-bottom: 40px; }
-footer h3, footer h4 { color: var(--t1); font-size: 1rem; margin-bottom: 16px; font-family: var(--ff); font-weight: 600; }
-footer a { color: var(--t3); display: block; padding: 4px 0; font-size: 0.92rem; transition: color var(--tr); }
-footer a:hover { color: var(--c-b); }
-.footer-alt {
+.alt-sarmal {
+  max-width: var(--sarmal-gen);
+  margin: 0 auto;
+  padding: 0 24px 56px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1.2fr;
+  gap: 48px;
+}
+.alt-blok h4 {
+  color: var(--t1);
+  font-family: var(--ff);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.alt-blok h4::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  width: 32px; height: 1px;
+  background: var(--c-b);
+  box-shadow: 0 0 8px var(--c-b-glow);
+}
+.alt-blok ul { list-style: none; padding: 0; margin: 0; }
+.alt-blok ul li { margin-bottom: 10px; }
+.alt-blok a {
+  color: var(--t3);
+  font-size: 0.92rem;
+  transition: color var(--tr);
+  display: inline-block;
+  padding: 0;
+}
+.alt-blok a:hover { color: var(--c-b); }
+.alt-blok address {
+  font-style: normal;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--t3);
+}
+.alt-blok address p { margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; color: var(--t3); }
+.alt-blok address a { color: var(--t3); }
+.alt-blok address a:hover { color: var(--c-b); }
+.alt-slogan {
+  color: var(--t3);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  margin-top: 16px;
+  max-width: 300px;
+}
+.sosyal {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.sosyal a {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--t2);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all var(--tr);
+}
+.sosyal a:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--c-b);
+  color: var(--c-b);
+  box-shadow: 0 0 16px var(--c-b-glow);
+  transform: translateY(-2px);
+}
+
+.alt-alt {
   border-top: 1px solid var(--border);
-  padding-top: 24px;
-  text-align: center;
+  padding: 20px 0;
   color: var(--t4);
   font-size: 0.85rem;
 }
-.footer-logo { max-height: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3)); }
+.alt-alt .sarmal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.alt-alt a { color: var(--t3); }
+.alt-alt a:hover { color: var(--c-b); }
+.alt-alt .yapimci { font-family: var(--ff-mono); font-size: 0.78rem; }
+
+/* Eski footer-izgara uyumu (kullanilmasa bile bozulmasin) */
+.footer-izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 40px; }
+.footer-alt { border-top: 1px solid var(--border); padding-top: 24px; text-align: center; color: var(--t4); font-size: 0.85rem; }
+.footer-logo { max-height: 48px; margin-bottom: 16px; }
 
 /* ---------- FORMLAR ---------- */
 .form-grup { margin-bottom: 20px; }
@@ -685,6 +816,9 @@ footer a:hover { color: var(--c-b); }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
   .ust-iletisim { font-size: 0.78rem; gap: 14px; }
+  .alt-sarmal { grid-template-columns: 1fr 1fr; gap: 32px; }
+  .logo-txt { font-size: 1.35rem; }
+  .logo-txt-buyuk { font-size: 2rem; }
 }
 
 @media (max-width: 640px) {
@@ -697,6 +831,9 @@ footer a:hover { color: var(--c-b); }
   .istatistik-izgara { grid-template-columns: repeat(2, 1fr); }
   .istatistik-sayi { font-size: 2.25rem; }
   .bolum { padding: 48px 0; }
+  .alt-sarmal { grid-template-columns: 1fr; gap: 32px; padding-bottom: 40px; }
+  .logo-txt { font-size: 1.2rem; }
+  .logo-txt-buyuk { font-size: 1.8rem; }
 }
 
 /* ============================================
