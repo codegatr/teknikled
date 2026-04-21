@@ -165,17 +165,28 @@ class Updater {
         foreach ($dosyalar as $yol) {
             $ad = basename($yol);
 
-            // Zaten uygulanmis mi?
+            // Zaten basariyla uygulanmis mi?
+            // 'hata' durumundaki migration'lari tekrar dene
             try {
-                $var = db_deger('SELECT 1 FROM `_migrations` WHERE `ad` = :a', ['a' => $ad]);
+                $sonucKaydi = db_deger(
+                    'SELECT `sonuc` FROM `_migrations` WHERE `ad` = :a',
+                    ['a' => $ad]
+                );
             } catch (Throwable $e) {
                 $sonuc['hata'] = 'Migration sorgu hatasi: ' . $e->getMessage();
                 return $sonuc;
             }
 
-            if ($var) {
+            if ($sonucKaydi === 'basarili') {
                 $sonuc['atlanan'][] = $ad;
                 continue;
+            }
+            // 'hata' veya null -> tekrar dene. 'hata' ise kaydi temizle ki duplicate olmasin.
+            if ($sonucKaydi === 'hata') {
+                try {
+                    db()->prepare('DELETE FROM `_migrations` WHERE `ad` = :a')
+                        ->execute(['a' => $ad]);
+                } catch (Throwable $_) {}
             }
 
             $sql = @file_get_contents($yol);
@@ -185,17 +196,25 @@ class Updater {
             }
 
             try {
-                // Migration SQL'i guvenli calistir: query() ile rowset'leri tuketmek
-                // unbuffered query hatalarini onler (ileride SELECT, CALL gibi
-                // sonuc donduren statement gelirse bile)
-                $stmt = db()->query($sql);
-                if ($stmt !== false) {
-                    // Tum rowset'leri tuket (SELECT, CALL sonuclari varsa temizle)
-                    do {
-                        $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    } while ($stmt->nextRowset());
-                    $stmt->closeCursor();
-                    $stmt = null;  // acik cursor kalmasin
+                // SQL dosyasini statement'lara bol ve tek tek calistir
+                // Bu hem multi-statement destegi saglar hem de unbuffered
+                // query hatalarindan kacinir. Her statement icin yeni
+                // prepared statement acilir ve closeCursor ile kapatilir.
+                $statements = self::sqlStatementlereBol($sql);
+                foreach ($statements as $stmt_sql) {
+                    $stmt_sql = trim($stmt_sql);
+                    if ($stmt_sql === '') continue;
+
+                    $stmt = db()->query($stmt_sql);
+                    if ($stmt !== false) {
+                        // Rowset'leri tuket (SELECT/CALL sonuclari icin)
+                        do {
+                            try { $stmt->fetchAll(PDO::FETCH_ASSOC); }
+                            catch (Throwable $_) { /* bazi statement'lar rowset dondurmez */ }
+                        } while ($stmt->nextRowset());
+                        $stmt->closeCursor();
+                        $stmt = null;
+                    }
                 }
                 db_ekle('_migrations', ['ad' => $ad, 'sonuc' => 'basarili']);
                 $sonuc['uygulanan'][] = $ad;
@@ -210,6 +229,72 @@ class Updater {
         }
 
         return $sonuc;
+    }
+
+    /**
+     * SQL icerigini ; karakterine gore statement'lara boler.
+     * String literal icindeki ; karakterlerine takilmaz.
+     * -- ve /* yorumlarini temizler.
+     * Donus: array of statement strings
+     */
+    private static function sqlStatementlereBol(string $sql): array {
+        // Once yorumlari temizle
+        // /* ... * / tarzi block yorumlar
+        $sql = preg_replace('#/\*.*?\*/#s', '', $sql) ?? $sql;
+        // -- ... satir sonu yorumlar
+        $sql = preg_replace('/^\s*--[^\n]*$/m', '', $sql) ?? $sql;
+
+        $statements = [];
+        $mevcut = '';
+        $uzunluk = strlen($sql);
+        $stringIci = false;
+        $stringKarakter = '';
+        $oncekiKarakter = '';
+
+        for ($i = 0; $i < $uzunluk; $i++) {
+            $k = $sql[$i];
+
+            // String literal takibi: ', " ve ` arasindayken ; atlanir
+            if (!$stringIci) {
+                if ($k === "'" || $k === '"' || $k === '`') {
+                    $stringIci = true;
+                    $stringKarakter = $k;
+                }
+            } else {
+                // String ici escape: ''  veya \'
+                if ($k === $stringKarakter) {
+                    // Ciftli quote escape (SQL standardi): '' iki karakter bir escape
+                    if ($i + 1 < $uzunluk && $sql[$i + 1] === $stringKarakter) {
+                        $mevcut .= $k . $sql[$i + 1];
+                        $i++;
+                        continue;
+                    }
+                    // Backslash escape (MySQL)
+                    if ($oncekiKarakter !== '\\') {
+                        $stringIci = false;
+                    }
+                }
+            }
+
+            if ($k === ';' && !$stringIci) {
+                if (trim($mevcut) !== '') {
+                    $statements[] = $mevcut;
+                }
+                $mevcut = '';
+                $oncekiKarakter = $k;
+                continue;
+            }
+
+            $mevcut .= $k;
+            $oncekiKarakter = $k;
+        }
+
+        // Son statement (semicolon olmadan bitmisse)
+        if (trim($mevcut) !== '') {
+            $statements[] = $mevcut;
+        }
+
+        return $statements;
     }
 
     private static function kopyala(string $kaynak, string $hedef): int {
