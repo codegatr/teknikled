@@ -29,6 +29,11 @@
 
 declare(strict_types=1);
 
+// Output buffering: yonlendir() cagrilarinin "headers already sent"
+// hatasi vermemesi icin tum ciktiyi buffer'a al. Normal sonlanmada
+// flush olur, yonlendir() icin ise temizlenir.
+ob_start();
+
 if (!is_file(__DIR__ . '/config.php')) {
     header('Location: install.php');
     exit;
@@ -2126,9 +2131,9 @@ function _yp_marka_form(): void {
                 if ($r['basari']) $veri['logo'] = $r['yol'];
                 else flash_ekle('hata', 'Logo: ' . $r['hata']);
             } elseif (!$id) {
-                // Yeni eklenirken logo sart
+                // Yeni eklenirken logo sart - flash yaz ve forma geri don
                 flash_ekle('hata', 'Logo zorunludur.');
-                return;
+                yonlendir(SITE_URL . '/yonetim.php?is=marka');
             }
             try {
                 if ($id) {

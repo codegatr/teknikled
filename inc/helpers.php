@@ -186,8 +186,12 @@ function dosya_yukle(array $dosya, string $altKlasor = 'urunler'): array {
     return ['yol' => $altKlasor . '/' . $ad, 'ad' => $ad];
 }
 
-/** Guvenli yonlendirme */
+/** Guvenli yonlendirme (buffer safe) */
 function yonlendir(string $url, int $kod = 302): never {
+    // Output buffer aktifse temizle - Location header'in calismasini garantile
+    while (ob_get_level() > 0) {
+        @ob_end_clean();
+    }
     header('Location: ' . $url, true, $kod);
     exit;
 }
