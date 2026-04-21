@@ -127,4 +127,60 @@
     });
   }
 
+  // ---- Scroll animasyonlari (fade-in-up) ----
+  if ('IntersectionObserver' in window) {
+    var gorunumGozleyici = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('gorundu');
+          // Istatistik sayi animasyonu
+          var sayi = entry.target.querySelector('.istatistik-sayi');
+          if (sayi && !sayi.dataset.oynatildi) {
+            sayi.dataset.oynatildi = '1';
+            sayiAnimasyon(sayi);
+          }
+          // Istatistik karti ise kendi sayiyisini de kontrol et
+          if (entry.target.classList.contains('istatistik-kart')) {
+            var sayi2 = entry.target.querySelector('.istatistik-sayi');
+            if (sayi2 && !sayi2.dataset.oynatildi) {
+              sayi2.dataset.oynatildi = '1';
+              sayiAnimasyon(sayi2);
+            }
+          }
+          gorunumGozleyici.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -80px 0px' });
+
+    document.querySelectorAll('.fade-in-up').forEach(function (el) {
+      gorunumGozleyici.observe(el);
+    });
+  } else {
+    // Fallback
+    document.querySelectorAll('.fade-in-up').forEach(function (el) {
+      el.classList.add('gorundu');
+    });
+    document.querySelectorAll('.istatistik-sayi').forEach(function (s) {
+      sayiAnimasyon(s);
+    });
+  }
+
+  function sayiAnimasyon(el) {
+    var hedef = parseFloat(el.dataset.hedef || '0');
+    var son = el.dataset.son || '';
+    var sure = 1400;
+    var baslangic = performance.now();
+    function tik(simdi) {
+      var gecen = simdi - baslangic;
+      var t = Math.min(gecen / sure, 1);
+      // easeOutExpo
+      var e = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+      var val = Math.floor(hedef * e);
+      el.textContent = val + son;
+      if (t < 1) requestAnimationFrame(tik);
+      else el.textContent = hedef + son;
+    }
+    requestAnimationFrame(tik);
+  }
+
 })();

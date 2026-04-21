@@ -480,14 +480,15 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     <?php endif; ?>
 
     <section class="hero">
+      <canvas class="hero-canvas" id="heroCanvas"></canvas>
       <div class="sarmal hero-sarmal">
         <div class="hero-metin">
-          <div class="hero-rozet">✨ <?= e(t('genel.yeni')) ?></div>
+          <div class="hero-rozet">TeknikLED · P1.86 / P2.5 · Konya</div>
           <h1><?= e($heroBaslik) ?></h1>
           <p class="hero-alt"><?= e($heroAlt) ?></p>
           <div class="hero-btn">
-            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk"><?= e(t('home.hero_cta')) ?></a>
-            <a href="<?= e(url('urunler')) ?>" class="btn btn-anahat"><?= e(t('menu.urunler')) ?></a>
+            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk btn-buyuk"><?= e(t('home.hero_cta')) ?> →</a>
+            <a href="<?= e(url('urunler')) ?>" class="btn btn-anahat btn-buyuk"><?= e(t('menu.urunler')) ?></a>
           </div>
         </div>
         <div class="hero-gorsel">
@@ -498,18 +499,107 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
       </div>
     </section>
 
+    <script>
+    // Hero LED Matrix canvas animasyonu
+    (function() {
+      var canvas = document.getElementById('heroCanvas');
+      if (!canvas || !canvas.getContext) return;
+      var ctx = canvas.getContext('2d');
+      var W = 0, H = 0, dpr = window.devicePixelRatio || 1;
+      var cols = 0, rows = 0;
+      var cellSize = 24;
+      var dots = [];
+      var colors = ['#ff3b6b', '#00ff99', '#00d4ff'];
+
+      function boyutla() {
+        var rect = canvas.getBoundingClientRect();
+        W = rect.width; H = rect.height;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
+        cols = Math.ceil(W / cellSize);
+        rows = Math.ceil(H / cellSize);
+        olustur();
+      }
+      function olustur() {
+        dots = [];
+        for (var r = 0; r < rows; r++) {
+          for (var c = 0; c < cols; c++) {
+            dots.push({
+              x: c * cellSize + cellSize / 2,
+              y: r * cellSize + cellSize / 2,
+              base: 0.03 + Math.random() * 0.08,
+              phase: Math.random() * Math.PI * 2,
+              speed: 0.0005 + Math.random() * 0.0015,
+              color: colors[Math.floor(Math.random() * 3)],
+              size: 1 + Math.random() * 1.5
+            });
+          }
+        }
+      }
+      function ciz(t) {
+        ctx.clearRect(0, 0, W, H);
+        for (var i = 0; i < dots.length; i++) {
+          var d = dots[i];
+          var a = d.base + Math.sin(t * d.speed + d.phase) * d.base;
+          if (a < 0.02) continue;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+          ctx.fillStyle = d.color;
+          ctx.globalAlpha = Math.min(a, 0.5);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      function dongu(t) {
+        ciz(t);
+        requestAnimationFrame(dongu);
+      }
+      window.addEventListener('resize', boyutla);
+      boyutla();
+      requestAnimationFrame(dongu);
+    })();
+    </script>
+
+    <!-- ISTATISTIK -->
+    <section class="istatistik-bolumu">
+      <div class="sarmal">
+        <div class="istatistik-izgara">
+          <div class="istatistik-kart fade-in-up">
+            <span class="istatistik-sayi" data-hedef="100" data-son="+">0</span>
+            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Completed Projects' : (dil() === 'ar' ? 'مشاريع مكتملة' : 'Tamamlanan Proje')) ?></div>
+          </div>
+          <div class="istatistik-kart fade-in-up">
+            <span class="istatistik-sayi" data-hedef="6" data-son="">0</span>
+            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Product Categories' : (dil() === 'ar' ? 'فئات المنتجات' : 'Ürün Kategorisi')) ?></div>
+          </div>
+          <div class="istatistik-kart fade-in-up">
+            <span class="istatistik-sayi" data-hedef="100" data-son="%">0</span>
+            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Local Production' : (dil() === 'ar' ? 'إنتاج محلي' : 'Yerli Üretim')) ?></div>
+          </div>
+          <div class="istatistik-kart fade-in-up">
+            <span class="istatistik-sayi" data-hedef="2" data-son=" <?= e(dil() === 'en' ? 'Yr' : 'Yıl') ?>">0</span>
+            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Warranty' : (dil() === 'ar' ? 'الضمان' : 'Parça Garantisi')) ?></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- KATEGORILER -->
     <section class="bolum kategoriler-bolumu">
       <div class="sarmal">
-        <div class="bolum-bas">
+        <div class="bolum-bas fade-in-up">
           <h2><?= e(t('home.urun_kategori')) ?></h2>
           <p><?= e(t('home.vitrin_urun')) ?></p>
         </div>
         <div class="kategori-izgara">
-          <?php foreach ($kategoriler as $k): ?>
-            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="kat-kart">
+          <?php foreach ($kategoriler as $i => $k): ?>
+            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="kat-kart fade-in-up" data-num="<?= str_pad((string)($i+1), 2, '0', STR_PAD_LEFT) ?>">
               <div class="kat-ikon"><?= e($k['ikon'] ?: '◈') ?></div>
               <h3><?= e($k[$adKol] ?? $k['ad_tr']) ?></h3>
+              <?php if (!empty($k['aciklama_tr']) || !empty($k[$acKol])): ?>
+                <p><?= e(mb_substr($k[$acKol] ?? $k['aciklama_tr'] ?? '', 0, 100)) ?>...</p>
+              <?php endif; ?>
             </a>
           <?php endforeach; ?>
         </div>
@@ -519,13 +609,15 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     <!-- NEDEN BIZ -->
     <section class="bolum neden-bolumu">
       <div class="sarmal">
-        <div class="bolum-bas">
+        <div class="bolum-bas fade-in-up">
           <h2><?= e(t('home.nedensize')) ?></h2>
         </div>
         <div class="neden-izgara">
-          <?php foreach ([1,2,3,4] as $i): ?>
-            <div class="neden-kart">
-              <div class="neden-ikon neden-<?= $i ?>"></div>
+          <?php
+          $nedenIkonlar = ['⚡', '🏭', '🛡️', '🎯'];
+          foreach ([1,2,3,4] as $i): ?>
+            <div class="neden-kart fade-in-up">
+              <div class="neden-ikon neden-<?= $i ?>"><?= $nedenIkonlar[$i-1] ?></div>
               <h3><?= e(t('home.ozellik' . $i . '_b')) ?></h3>
               <p><?= e(t('home.ozellik' . $i . '_a')) ?></p>
             </div>
