@@ -389,10 +389,9 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     $lang = dil();
     $heroBaslik = ayar('hero_baslik_' . $lang, '') ?: ayar('hero_baslik_tr', '');
     if ($heroBaslik === '') {
-        // DB'de yoksa guvenli fallback
         $heroBaslik = $lang === 'en'
-            ? 'Next Generation Solutions in LED Technology'
-            : ($lang === 'ar' ? 'حلول الجيل القادم في تقنية LED' : 'LED Teknolojisinde Yeni Nesil Çözümler');
+            ? 'Light, Engineered.'
+            : ($lang === 'ar' ? 'الضوء، مهندس' : 'Işığın Mühendisliği');
     }
     $heroAlt = ayar('hero_alt_' . $lang, '') ?: ayar('hero_alt_tr', '');
     if ($heroAlt === '') {
@@ -405,304 +404,187 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     try {
         $sliderler = db_liste('SELECT * FROM slider WHERE aktif = 1 ORDER BY sira ASC, id ASC');
     } catch (Throwable $e) {
-        $sliderler = [];  // slider tablosu yoksa sessiz gec
+        $sliderler = [];
     }
     $baslikKol   = 'baslik_' . $lang;
     $aciklamaKol = 'aciklama_' . $lang;
     $butonKol    = 'buton_metin_' . $lang;
+
+    // Her kategori icin buyuk fotograf (varsa kategoriler/slug.png, yoksa slider fallback)
+    $kategoriGorseller = [
+        'moduler-karkas' => 'slider/01-karkas.png',
+        'led-masa'       => 'slider/02-led-masa.png',
+        'led-poster'     => 'slider/03-led-poster.png',
+        'metal-kursu'    => 'slider/04-metal-kursu.png',
+        'led-kursu'      => 'urunler/ledkursu-p186.png',
+        'cnc-kasa'       => 'urunler/cnckasa-128.png',
+    ];
     ?>
-    <?php if (!empty($sliderler)): ?>
-    <!-- SLIDER -->
-    <section class="tl-slider" id="tlSlider">
-      <div class="tl-slider-ic">
-        <?php foreach ($sliderler as $i => $s):
-            $baslik   = $s[$baslikKol]   ?? $s['baslik_tr']   ?? '';
-            $aciklama = $s[$aciklamaKol] ?? $s['aciklama_tr'] ?? '';
-            $butonMet = $s[$butonKol]    ?? $s['buton_metin_tr'] ?? '';
-        ?>
-          <div class="tl-slide <?= $i === 0 ? 'aktif' : '' ?>" data-idx="<?= $i ?>">
-            <img src="<?= e(upload($s['gorsel'])) ?>" alt="<?= e($baslik) ?>" class="tl-slide-gorsel" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>">
-            <div class="tl-slide-icerik">
-              <div class="tl-slide-kutusu">
-                <?php if ($baslik): ?><h2><?= e($baslik) ?></h2><?php endif; ?>
-                <?php if ($aciklama): ?><p><?= e($aciklama) ?></p><?php endif; ?>
-                <?php if ($butonMet && $s['buton_url']): ?>
-                  <a href="<?= e($s['buton_url']) ?>" class="btn btn-renk"><?= e($butonMet) ?></a>
-                <?php endif; ?>
-              </div>
+
+    <!-- =============================================
+         V0.3.0 - APPLE SCROLL-SNAP SAYFASI
+         Her bolum 100vh, sayfa bolum bolum kayar.
+         Urun fotoğraflari merkez sahnede.
+         ============================================= -->
+
+    <div class="ana-sayfa-v3">
+
+      <!-- ========== 1. HERO - CINEMATIC ========== -->
+      <section class="v3-hero">
+        <div class="v3-hero-bg">
+          <?php if (!empty($sliderler)): ?>
+            <img src="<?= e(upload($sliderler[0]['gorsel'])) ?>"
+                 alt="<?= e($sliderler[0][$baslikKol] ?? $sliderler[0]['baslik_tr']) ?>"
+                 class="v3-hero-img" loading="eager">
+          <?php else: ?>
+            <img src="<?= e(upload('slider/01-karkas.png')) ?>" alt="TeknikLED" class="v3-hero-img">
+          <?php endif; ?>
+          <div class="v3-hero-vignette"></div>
+        </div>
+        <div class="v3-hero-icerik">
+          <div class="v3-marka"><?= e(ayar('firma_adi', 'TeknikLED')) ?> · <?= e(dil() === 'en' ? 'Since 2020' : (dil() === 'ar' ? 'منذ 2020' : 'Konya')) ?></div>
+          <h1 class="v3-hero-baslik"><?= e($heroBaslik) ?></h1>
+          <p class="v3-hero-alt"><?= e($heroAlt) ?></p>
+          <div class="v3-hero-btn">
+            <a href="<?= e(url('teklif')) ?>" class="v3-btn v3-btn-birincil"><?= e(t('home.hero_cta')) ?></a>
+            <a href="#kategori-1" class="v3-btn v3-btn-ikincil"><?= e(t('menu.urunler')) ?></a>
+          </div>
+        </div>
+        <a href="#kategori-1" class="v3-kaydir" aria-label="Scroll">
+          <span class="v3-kaydir-metin"><?= e(dil() === 'en' ? 'EXPLORE' : (dil() === 'ar' ? 'استكشف' : 'KEŞFET')) ?></span>
+          <span class="v3-kaydir-cizgi"></span>
+        </a>
+      </section>
+
+      <!-- ========== 2-7. KATEGORI SECTION'LARI (her biri 100vh) ========== -->
+      <?php foreach ($kategoriler as $i => $k):
+        $num    = $i + 1;
+        $gorsel = $kategoriGorseller[$k['slug']] ?? 'kategoriler/' . $k['slug'] . '.png';
+        $alternate = $i % 2 === 0; // cift index sola, tek saga
+        $kadAci = $k[$acKol] ?? $k['aciklama_tr'] ?? '';
+        $kadAd  = $k[$adKol] ?? $k['ad_tr'];
+      ?>
+      <section id="kategori-<?= $num ?>" class="v3-kategori <?= $alternate ? 'v3-kat-sol' : 'v3-kat-sag' ?>">
+        <div class="v3-kat-gorsel-alan">
+          <div class="v3-kat-gorsel-ic">
+            <img src="<?= e(upload($gorsel)) ?>"
+                 alt="<?= e($kadAd) ?>"
+                 class="v3-kat-gorsel"
+                 loading="lazy">
+            <div class="v3-kat-gorsel-glow"></div>
+          </div>
+        </div>
+        <div class="v3-kat-metin-alan">
+          <div class="v3-kat-metin-ic">
+            <div class="v3-kat-rozet">
+              <span class="v3-kat-num"><?= sprintf('%02d', $num) ?></span>
+              <span class="v3-kat-cizgi"></span>
+              <span class="v3-kat-etiket"><?= e(dil() === 'en' ? 'CATEGORY' : (dil() === 'ar' ? 'فئة' : 'KATEGORİ')) ?></span>
             </div>
-          </div>
-        <?php endforeach; ?>
-
-        <?php if (count($sliderler) > 1): ?>
-        <button class="tl-slider-ok tl-slider-ok-sol" aria-label="Onceki">‹</button>
-        <button class="tl-slider-ok tl-slider-ok-sag" aria-label="Sonraki">›</button>
-        <div class="tl-slider-noktalar">
-          <?php foreach ($sliderler as $i => $_): ?>
-            <button class="tl-nokta <?= $i === 0 ? 'aktif' : '' ?>" data-idx="<?= $i ?>" aria-label="Slide <?= $i + 1 ?>"></button>
-          <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-      </div>
-    </section>
-
-    <script>
-    (function() {
-      var slider = document.getElementById('tlSlider');
-      if (!slider) return;
-      var slideler = slider.querySelectorAll('.tl-slide');
-      var noktalar = slider.querySelectorAll('.tl-nokta');
-      if (slideler.length <= 1) return;
-
-      var mevcut = 0;
-      var zamanli;
-
-      function goster(idx) {
-        if (idx < 0) idx = slideler.length - 1;
-        if (idx >= slideler.length) idx = 0;
-        slideler[mevcut].classList.remove('aktif');
-        if (noktalar[mevcut]) noktalar[mevcut].classList.remove('aktif');
-        mevcut = idx;
-        slideler[mevcut].classList.add('aktif');
-        if (noktalar[mevcut]) noktalar[mevcut].classList.add('aktif');
-      }
-      function ileri()  { goster(mevcut + 1); }
-      function geri()   { goster(mevcut - 1); }
-      function sifirla() {
-        clearInterval(zamanli);
-        zamanli = setInterval(ileri, 5500);
-      }
-
-      var sol = slider.querySelector('.tl-slider-ok-sol');
-      var sag = slider.querySelector('.tl-slider-ok-sag');
-      if (sol) sol.addEventListener('click', function(){ geri(); sifirla(); });
-      if (sag) sag.addEventListener('click', function(){ ileri(); sifirla(); });
-
-      noktalar.forEach(function(n) {
-        n.addEventListener('click', function() {
-          goster(parseInt(n.dataset.idx, 10)); sifirla();
-        });
-      });
-
-      // Swipe destegi (mobilde)
-      var baslangicX = 0;
-      slider.addEventListener('touchstart', function(e) { baslangicX = e.touches[0].clientX; }, {passive: true});
-      slider.addEventListener('touchend', function(e) {
-        var fark = e.changedTouches[0].clientX - baslangicX;
-        if (Math.abs(fark) > 50) {
-          if (fark < 0) ileri(); else geri();
-          sifirla();
-        }
-      });
-
-      sifirla();
-    })();
-    </script>
-    <?php endif; ?>
-
-    <section class="hero">
-      <!-- Sahne grid (perspektifli LED pixel pattern altta) -->
-      <div class="sahne-grid"></div>
-
-      <!-- Volumetric spotlight isiklari -->
-      <div class="sahne-isiklari">
-        <div class="sahne-isik isik-1"></div>
-        <div class="sahne-isik isik-2"></div>
-        <div class="sahne-isik isik-3"></div>
-        <div class="sahne-isik isik-4"></div>
-        <div class="sahne-isik isik-5"></div>
-      </div>
-
-      <!-- Ucusan isik parcaciklari -->
-      <div class="parcaciklar" id="parcaciklar"></div>
-
-      <div class="sarmal hero-sarmal">
-        <div class="hero-metin">
-          <div class="hero-rozet"><?= e(dil() === 'en' ? 'Live Since 2020 · Konya/Turkey' : (dil() === 'ar' ? 'منذ 2020 · قونيا، تركيا' : 'Canlı Yayında · Konya/Türkiye')) ?></div>
-          <h1><?= e($heroBaslik) ?></h1>
-          <p class="hero-alt"><?= e($heroAlt) ?></p>
-          <div class="hero-btn">
-            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk"><?= e(t('home.hero_cta')) ?> →</a>
-            <a href="<?= e(url('urunler')) ?>" class="btn btn-anahat"><?= e(t('menu.urunler')) ?></a>
-          </div>
-        </div>
-        <div class="hero-gorsel">
-          <img src="<?= e(upload('slider/03-led-kursu.png')) ?>" alt="TeknikLED" loading="eager">
-        </div>
-      </div>
-
-      <!-- Scroll ipucu -->
-      <div class="hero-kaydir"><?= e(dil() === 'en' ? 'Scroll' : (dil() === 'ar' ? 'مرر' : 'Kaydır')) ?></div>
-    </section>
-
-    <script>
-    // Ucusan isik parcaciklari olustur
-    (function() {
-      var alan = document.getElementById('parcaciklar');
-      if (!alan) return;
-      var renkler = ['#ff2a7a', '#7b2eff', '#00e0ff', '#00ff88', '#ff6b00'];
-      var adet = 28;
-      for (var i = 0; i < adet; i++) {
-        var p = document.createElement('div');
-        p.className = 'parcacik';
-        p.style.left = (Math.random() * 100) + '%';
-        p.style.color = renkler[Math.floor(Math.random() * renkler.length)];
-        p.style.animationDelay = (Math.random() * 12) + 's';
-        p.style.animationDuration = (9 + Math.random() * 8) + 's';
-        p.style.setProperty('--dx', (Math.random() * 200 - 100) + 'px');
-        p.style.width = (2 + Math.random() * 3) + 'px';
-        p.style.height = p.style.width;
-        alan.appendChild(p);
-      }
-    })();
-    </script>
-
-    <script>
-    // Hero LED Matrix canvas animasyonu - KALDIRILDI v0.2.4'te
-    // Yerine CSS-tabanli sahne isiklari geldi
-    </script>
-
-    <!-- ISTATISTIK -->
-    <section class="istatistik-bolumu">
-      <div class="sarmal">
-        <div class="istatistik-izgara">
-          <div class="istatistik-kart fade-in-up">
-            <span class="istatistik-sayi" data-hedef="100" data-son="+">0</span>
-            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Completed Projects' : (dil() === 'ar' ? 'مشاريع مكتملة' : 'Tamamlanan Proje')) ?></div>
-          </div>
-          <div class="istatistik-kart fade-in-up">
-            <span class="istatistik-sayi" data-hedef="6" data-son="">0</span>
-            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Product Categories' : (dil() === 'ar' ? 'فئات المنتجات' : 'Ürün Kategorisi')) ?></div>
-          </div>
-          <div class="istatistik-kart fade-in-up">
-            <span class="istatistik-sayi" data-hedef="100" data-son="%">0</span>
-            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Local Production' : (dil() === 'ar' ? 'إنتاج محلي' : 'Yerli Üretim')) ?></div>
-          </div>
-          <div class="istatistik-kart fade-in-up">
-            <span class="istatistik-sayi" data-hedef="2" data-son=" <?= e(dil() === 'en' ? 'Yr' : 'Yıl') ?>">0</span>
-            <div class="istatistik-etiket"><?= e(dil() === 'en' ? 'Warranty' : (dil() === 'ar' ? 'الضمان' : 'Parça Garantisi')) ?></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- KATEGORILER -->
-    <section class="bolum kategoriler-bolumu">
-      <div class="sarmal">
-        <div class="bolum-bas fade-in-up">
-          <h2><?= e(t('home.urun_kategori')) ?></h2>
-          <p><?= e(t('home.vitrin_urun')) ?></p>
-        </div>
-        <div class="kategori-izgara">
-          <?php foreach ($kategoriler as $i => $k): ?>
-            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="kat-kart fade-in-up">
-              <span class="kat-num">MODÜL <?= str_pad((string)($i+1), 2, '0', STR_PAD_LEFT) ?></span>
-              <div class="kat-ikon"><?= e($k['ikon'] ?: '◈') ?></div>
-              <h3><?= e($k[$adKol] ?? $k['ad_tr']) ?></h3>
-              <?php if (!empty($k['aciklama_tr']) || !empty($k[$acKol])): ?>
-                <p><?= e(mb_substr($k[$acKol] ?? $k['aciklama_tr'] ?? '', 0, 100)) ?>...</p>
-              <?php endif; ?>
-              <span class="kat-ok"><?= e(t('genel.detay')) ?></span>
+            <h2 class="v3-kat-baslik"><?= e($kadAd) ?></h2>
+            <?php if ($kadAci): ?>
+              <div class="v3-kat-aciklama">
+                <?= $kadAci /* HTML allowed */ ?>
+              </div>
+            <?php endif; ?>
+            <div class="v3-kat-ozellikler">
+              <?php
+              // Kategoriye gore ozellik rozet'leri (hardcoded - teknik spec)
+              $ozellikler = match($k['slug']) {
+                'moduler-karkas' => ['TASARIM TESCİLLİ', '1.20 MM GALVANİZ', 'MODÜLER'],
+                'led-masa'       => ['P1.86 / P2.5', '96×192 → 96×288', 'ÖZEL ÖLÇÜ'],
+                'led-kursu'      => ['P1.86 PREMIUM', 'MİKROFON ENTEGRE', 'HDMI/USB'],
+                'led-poster'     => ['TEK/ÇİFT TARAFLI', '8 CM ULTRA İNCE', 'VİTRİN HAZIR'],
+                'cnc-kasa'       => ['UNIVERSAL P2.5-P10', 'DKP SAC', 'FIRIN BOYALI'],
+                'metal-kursu'    => ['2 MM DKP SAC', 'TASARIM TESCİLLİ', 'SONRADAN LED'],
+                default          => []
+              };
+              foreach ($ozellikler as $oz): ?>
+                <span class="v3-kat-spec"><?= e($oz) ?></span>
+              <?php endforeach; ?>
+            </div>
+            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="v3-btn v3-btn-birincil">
+              <?= e(dil() === 'en' ? 'Explore Products' : (dil() === 'ar' ? 'استكشف' : 'Ürünleri Gör')) ?>
+              <span class="v3-btn-ok">→</span>
             </a>
-          <?php endforeach; ?>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+      <?php endforeach; ?>
 
-    <!-- NEDEN BIZ -->
-    <section class="bolum neden-bolumu">
-      <div class="sarmal">
-        <div class="bolum-bas fade-in-up">
-          <h2><?= e(t('home.nedensize')) ?></h2>
+      <!-- ========== 8. STATS / RAKAMLAR ========== -->
+      <section class="v3-stats">
+        <div class="v3-stats-ustbas">
+          <span class="v3-ustbas-etiket"><?= e(dil() === 'en' ? 'NUMBERS' : (dil() === 'ar' ? 'أرقام' : 'RAKAMLAR')) ?></span>
         </div>
-        <div class="neden-izgara">
-          <?php
-          $nedenIkonlar = ['⚡', '🏭', '🛡️', '🎯'];
-          foreach ([1,2,3,4] as $i): ?>
-            <div class="neden-kart fade-in-up">
-              <div class="neden-ikon neden-<?= $i ?>"><?= $nedenIkonlar[$i-1] ?></div>
-              <h3><?= e(t('home.ozellik' . $i . '_b')) ?></h3>
-              <p><?= e(t('home.ozellik' . $i . '_a')) ?></p>
-            </div>
-          <?php endforeach; ?>
+        <h2 class="v3-stats-baslik"><?= e(dil() === 'en' ? 'Built on trust,<br>proven by results.' : (dil() === 'ar' ? 'مبني على الثقة.' : 'Güvenle kuruldu,<br>sonuçla kanıtlandı.')) ?></h2>
+        <div class="v3-stats-izgara">
+          <div class="v3-stat">
+            <span class="v3-stat-sayi" data-hedef="100" data-son="+">0</span>
+            <span class="v3-stat-etiket"><?= e(dil() === 'en' ? 'Completed Projects' : (dil() === 'ar' ? 'مشاريع' : 'Tamamlanan Proje')) ?></span>
+          </div>
+          <div class="v3-stat">
+            <span class="v3-stat-sayi" data-hedef="6" data-son="">0</span>
+            <span class="v3-stat-etiket"><?= e(dil() === 'en' ? 'Product Categories' : (dil() === 'ar' ? 'فئات' : 'Ürün Kategorisi')) ?></span>
+          </div>
+          <div class="v3-stat">
+            <span class="v3-stat-sayi" data-hedef="100" data-son="%">0</span>
+            <span class="v3-stat-etiket"><?= e(dil() === 'en' ? 'Local Production' : (dil() === 'ar' ? 'إنتاج محلي' : 'Yerli Üretim')) ?></span>
+          </div>
+          <div class="v3-stat">
+            <span class="v3-stat-sayi" data-hedef="2" data-son=" <?= e(dil() === 'en' ? 'YR' : 'YIL') ?>">0</span>
+            <span class="v3-stat-etiket"><?= e(dil() === 'en' ? 'Warranty' : (dil() === 'ar' ? 'ضمان' : 'Parça Garantisi')) ?></span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- VITRIN URUNLER -->
-    <?php if (!empty($veri['vitrin_urunler'])): ?>
-    <section class="bolum urun-bolumu">
-      <div class="sarmal">
-        <div class="bolum-bas">
-          <h2><?= e(t('home.vitrin_urun')) ?></h2>
-          <a href="<?= e(url('urunler')) ?>" class="bolum-hepsi"><?= e(t('genel.tumunu_gor')) ?> →</a>
+      <!-- ========== 9. REFERANSLAR ========== -->
+      <?php if (!empty($veri['referanslar'])): ?>
+      <section class="v3-referanslar">
+        <div class="v3-ref-bas">
+          <span class="v3-ustbas-etiket"><?= e(dil() === 'en' ? 'PROJECTS' : (dil() === 'ar' ? 'مشاريع' : 'PROJELER')) ?></span>
+          <h2 class="v3-ref-baslik"><?= e(dil() === 'en' ? 'Trusted by visionary projects.' : (dil() === 'ar' ? 'موثوق بمشاريع رائدة' : 'Vizyon sahibi projelerin tercihi.')) ?></h2>
         </div>
-        <div class="urun-izgara">
-          <?php foreach ($veri['vitrin_urunler'] as $u): ?>
-            <article class="urun-kart">
-              <a href="<?= e(url('urun/' . $u['slug'])) ?>" class="urun-gorsel">
-                <?php if ($u['ana_gorsel']): ?>
-                  <img src="<?= e(upload($u['ana_gorsel'])) ?>" alt="<?= e($u[$adKol] ?? $u['ad_tr']) ?>" loading="lazy">
-                <?php else: ?>
-                  <div class="urun-placeholder">◈</div>
-                <?php endif; ?>
-                <?php if ($u['yeni']): ?><span class="urun-rozet"><?= e(t('genel.yeni')) ?></span><?php endif; ?>
-              </a>
-              <div class="urun-gvd">
-                <h3><a href="<?= e(url('urun/' . $u['slug'])) ?>"><?= e($u[$adKol] ?? $u['ad_tr']) ?></a></h3>
-                <?php if ($u['piksel']): ?><span class="urun-etiket"><?= e($u['piksel']) ?></span><?php endif; ?>
-                <p><?= e(kisalt($u[$ozKol] ?? $u['ozet_tr'] ?? '', 90)) ?></p>
-                <a href="<?= e(url('urun/' . $u['slug'])) ?>" class="urun-btn"><?= e(t('genel.detay')) ?></a>
-              </div>
-            </article>
-          <?php endforeach; ?>
-        </div>
-      </div>
-    </section>
-    <?php endif; ?>
-
-    <!-- REFERANSLAR -->
-    <?php if (!empty($veri['referanslar'])): ?>
-    <section class="bolum referans-bolumu">
-      <div class="sarmal">
-        <div class="bolum-bas">
-          <h2><?= e(t('home.referanslar')) ?></h2>
-          <a href="<?= e(url('referanslar')) ?>" class="bolum-hepsi"><?= e(t('genel.tumunu_gor')) ?> →</a>
-        </div>
-        <div class="referans-izgara">
+        <div class="v3-ref-izgara">
           <?php foreach ($veri['referanslar'] as $r): ?>
-            <a href="<?= e(url('referans/' . $r['slug'])) ?>" class="referans-kart">
-              <div class="referans-gorsel">
+            <a href="<?= e(url('referans/' . $r['slug'])) ?>" class="v3-ref-kart">
+              <div class="v3-ref-gorsel">
                 <?php if ($r['ana_gorsel']): ?>
                   <img src="<?= e(upload($r['ana_gorsel'])) ?>" alt="<?= e($r[$musKol] ?? $r['musteri_tr']) ?>" loading="lazy">
                 <?php else: ?>
-                  <div class="referans-placeholder">🏢</div>
+                  <div class="v3-ref-placeholder">◈</div>
                 <?php endif; ?>
               </div>
-              <div class="referans-ust">
+              <div class="v3-ref-icerik">
                 <h3><?= e($r[$musKol] ?? $r['musteri_tr']) ?></h3>
-                <?php if ($r['lokasyon']): ?><small>📍 <?= e($r['lokasyon']) ?></small><?php endif; ?>
+                <?php if ($r['lokasyon']): ?>
+                  <span class="v3-ref-loc">📍 <?= e($r['lokasyon']) ?></span>
+                <?php endif; ?>
               </div>
             </a>
           <?php endforeach; ?>
         </div>
-      </div>
-    </section>
-    <?php endif; ?>
+        <a href="<?= e(url('referanslar')) ?>" class="v3-btn v3-btn-ikincil v3-ref-hepsi">
+          <?= e(dil() === 'en' ? 'View All Projects' : (dil() === 'ar' ? 'عرض المشاريع' : 'Tüm Projeleri Gör')) ?> →
+        </a>
+      </section>
+      <?php endif; ?>
 
-    <!-- CTA BANDI -->
-    <section class="cta-band">
-      <div class="sarmal cta-sarmal">
-        <div>
-          <h2><?= e(t('teklif.baslik')) ?></h2>
-          <p><?= e(t('teklif.alt')) ?></p>
+      <!-- ========== 10. CTA - BUYUK KAPANIŞ ========== -->
+      <section class="v3-cta">
+        <div class="v3-cta-ic">
+          <h2 class="v3-cta-baslik"><?= e(dil() === 'en' ? 'Ready to bring your project to life?' : (dil() === 'ar' ? 'جاهز لبدء مشروعك؟' : 'Projenize hayat vermeye hazır mısınız?')) ?></h2>
+          <p class="v3-cta-alt"><?= e(dil() === 'en' ? 'Tell us about your vision. We respond within 24 hours.' : (dil() === 'ar' ? 'أخبرنا برؤيتك' : 'Vizyonunuzu bizimle paylaşın. 24 saat içinde yanıtlıyoruz.')) ?></p>
+          <a href="<?= e(url('teklif')) ?>" class="v3-btn v3-btn-birincil v3-btn-buyuk">
+            <?= e(t('home.hero_cta')) ?>
+            <span class="v3-btn-ok">→</span>
+          </a>
         </div>
-        <a href="<?= e(url('teklif')) ?>" class="btn btn-beyaz"><?= e(t('home.hero_cta')) ?></a>
-      </div>
-    </section>
+      </section>
+
+    </div>
     <?php
 }
-
 function _view_urunler(array $veri, string $adKol, string $ozKol): void {
     ?>
     <section class="bolum">

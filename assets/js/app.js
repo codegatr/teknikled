@@ -133,15 +133,15 @@
       entries.forEach(function (entry) {
         if (entry.isIntersecting) {
           entry.target.classList.add('gorundu');
-          // Istatistik sayi animasyonu
-          var sayi = entry.target.querySelector('.istatistik-sayi');
+          // Istatistik sayi animasyonu (hem eski .istatistik-sayi hem V3 .v3-stat-sayi)
+          var sayi = entry.target.querySelector('.istatistik-sayi, .v3-stat-sayi');
           if (sayi && !sayi.dataset.oynatildi) {
             sayi.dataset.oynatildi = '1';
             sayiAnimasyon(sayi);
           }
           // Istatistik karti ise kendi sayiyisini de kontrol et
-          if (entry.target.classList.contains('istatistik-kart')) {
-            var sayi2 = entry.target.querySelector('.istatistik-sayi');
+          if (entry.target.classList.contains('istatistik-kart') || entry.target.classList.contains('v3-stat')) {
+            var sayi2 = entry.target.querySelector('.istatistik-sayi, .v3-stat-sayi');
             if (sayi2 && !sayi2.dataset.oynatildi) {
               sayi2.dataset.oynatildi = '1';
               sayiAnimasyon(sayi2);
@@ -152,7 +152,7 @@
       });
     }, { threshold: 0.15, rootMargin: '0px 0px -80px 0px' });
 
-    document.querySelectorAll('.fade-in-up').forEach(function (el) {
+    document.querySelectorAll('.fade-in-up, .v3-stat').forEach(function (el) {
       gorunumGozleyici.observe(el);
     });
   } else {
@@ -160,7 +160,7 @@
     document.querySelectorAll('.fade-in-up').forEach(function (el) {
       el.classList.add('gorundu');
     });
-    document.querySelectorAll('.istatistik-sayi').forEach(function (s) {
+    document.querySelectorAll('.istatistik-sayi, .v3-stat-sayi').forEach(function (s) {
       sayiAnimasyon(s);
     });
   }
