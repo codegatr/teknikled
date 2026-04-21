@@ -132,7 +132,7 @@ function _yp_layout_bas(string $is): void {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Yonetim - <?= e(ayar('firma_adi', 'TeknikLED')) ?></title>
-      <link rel="stylesheet" href="<?= e(asset('css/yonetim.css?v=0.1.0')) ?>">
+      <link rel="stylesheet" href="<?= e(asset('css/yonetim.css')) ?>">
       <link rel="icon" type="image/png" href="<?= e(asset('img/logo.png')) ?>">
     </head>
     <body>
@@ -193,7 +193,7 @@ function _yp_layout_son(): void {
         </div>
       </main>
     </div>
-    <script src="<?= e(asset('js/yonetim.js?v=0.1.0')) ?>"></script>
+    <script src="<?= e(asset('js/yonetim.js')) ?>"></script>
     </body>
     </html>
     <?php
@@ -238,7 +238,7 @@ function _yp_giris(): void {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Giris - <?= e(ayar('firma_adi', 'TeknikLED')) ?> Yonetim</title>
-      <link rel="stylesheet" href="<?= e(asset('css/yonetim.css?v=0.1.0')) ?>">
+      <link rel="stylesheet" href="<?= e(asset('css/yonetim.css')) ?>">
       <link rel="icon" type="image/png" href="<?= e(asset('img/logo.png')) ?>">
     </head>
     <body class="yp-giris">

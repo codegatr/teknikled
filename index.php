@@ -228,9 +228,9 @@ $langHtml = dil();
 <meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="<?= e(SITE_URL . ($rota ? '/' . $rota : '/')) ?>">
 <link rel="icon" type="image/png" href="<?= e(asset('img/logo.png')) ?>">
-<link rel="stylesheet" href="<?= e(asset('css/style.css?v=0.1.0')) ?>">
+<link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
 <?php if ($rtl): ?>
-<link rel="stylesheet" href="<?= e(asset('css/rtl.css?v=0.1.0')) ?>">
+<link rel="stylesheet" href="<?= e(asset('css/rtl.css')) ?>">
 <?php endif; ?>
 <!-- Open Graph -->
 <meta property="og:title" content="<?= e($metaBaslik) ?>">
@@ -367,7 +367,7 @@ switch ($tipi) {
 </a>
 <?php endif; ?>
 
-<script src="<?= e(asset('js/app.js?v=0.1.0')) ?>"></script>
+<script src="<?= e(asset('js/app.js')) ?>"></script>
 </body>
 </html>
 <?php

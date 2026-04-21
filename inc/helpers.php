@@ -68,9 +68,33 @@ function url(string $yol = '', ?string $lang = null): string {
     return $yol === '' ? $base . '/' . $l : $base . '/' . $l . '/' . $yol;
 }
 
-/** Asset URL */
+/** Uygulamanin manifest'teki mevcut versiyonu (asset cache busting icin) */
+function app_version(): string {
+    static $v = null;
+    if ($v !== null) return $v;
+    $manifest = __DIR__ . '/../manifest.json';
+    if (is_file($manifest)) {
+        $m = json_decode(file_get_contents($manifest), true);
+        $v = $m['version'] ?? '1.0';
+    } else {
+        $v = '1.0';
+    }
+    return $v;
+}
+
+/** Asset URL (otomatik versiyon parametresi ile cache busting) */
 function asset(string $yol): string {
-    return rtrim(SITE_URL, '/') . '/assets/' . ltrim($yol, '/');
+    $temiz = ltrim($yol, '/');
+    // Eger yol zaten ? iceriyorsa (manuel versiyon), dokunma
+    if (str_contains($temiz, '?')) {
+        return rtrim(SITE_URL, '/') . '/assets/' . $temiz;
+    }
+    // Sadece CSS ve JS icin versiyon ekle
+    $uzanti = strtolower(pathinfo(parse_url($temiz, PHP_URL_PATH) ?: $temiz, PATHINFO_EXTENSION));
+    if (in_array($uzanti, ['css', 'js'], true)) {
+        return rtrim(SITE_URL, '/') . '/assets/' . $temiz . '?v=' . app_version();
+    }
+    return rtrim(SITE_URL, '/') . '/assets/' . $temiz;
 }
 
 /** Upload URL */
