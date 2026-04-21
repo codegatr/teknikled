@@ -87,6 +87,15 @@ $aksiyonlar = [
     'sayfalar'     => '_yp_sayfalar',
     'sayfa'        => '_yp_sayfa_form',
     'sayfa-sil'    => '_yp_sayfa_sil',
+    'cozumler'     => '_yp_cozumler',
+    'cozum'        => '_yp_cozum_form',
+    'cozum-sil'    => '_yp_cozum_sil',
+    'icerikler'    => '_yp_icerikler',
+    'icerik'       => '_yp_icerik_form',
+    'icerik-sil'   => '_yp_icerik_sil',
+    'markalar'     => '_yp_markalar',
+    'marka'        => '_yp_marka_form',
+    'marka-sil'    => '_yp_marka_sil',
     'ayarlar'      => '_yp_ayarlar',
     'yoneticiler'  => '_yp_yoneticiler',
     'yonetici'     => '_yp_yonetici_form',
@@ -113,7 +122,10 @@ function _yp_layout_bas(string $is): void {
         'panel'       => ['📊', 'Panel'],
         'urunler'     => ['📦', 'Urunler'],
         'kategoriler' => ['🏷', 'Kategoriler'],
+        'cozumler'    => ['💡', 'Cozumler'],
         'referanslar' => ['🏢', 'Referanslar'],
+        'icerikler'   => ['📝', 'Blog/Haber'],
+        'markalar'    => ['🎨', 'Markalar'],
         'slider'      => ['🎞', 'Slider'],
         'teklifler'   => ['📋', 'Teklifler', _yp_teklif_yeni_sayi()],
         'mesajlar'    => ['✉', 'Mesajlar', _yp_mesaj_okunmamis_sayi()],
@@ -1721,6 +1733,461 @@ function _yp_sayfa_sil(): void {
         log_yaz('sayfa_sil', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
     } catch (Throwable $e) { flash_ekle('hata', 'Silme hatasi: ' . $e->getMessage()); }
     yonlendir(SITE_URL . '/yonetim.php?is=sayfalar');
+}
+
+// =================================================================
+// 10) COZUMLER (v0.3.1)
+// =================================================================
+function _yp_cozumler(): void {
+    $cozumler = db_liste('SELECT * FROM cozumler ORDER BY sira, id');
+    ?>
+    <div class="yp-bas">
+      <h1>Cozumler</h1>
+      <a href="?is=cozum" class="yp-btn">+ Yeni Cozum</a>
+    </div>
+    <div class="yp-tablo-sarmal">
+      <table class="yp-tablo">
+        <thead><tr><th>Ad</th><th>Slug</th><th>Sira</th><th>Vitrin</th><th>Durum</th><th></th></tr></thead>
+        <tbody>
+        <?php if (!$cozumler): ?>
+          <tr><td colspan="6" style="padding:30px; text-align:center; color:#64748b;">Henuz cozum yok.</td></tr>
+        <?php else: foreach ($cozumler as $c): ?>
+          <tr>
+            <td><?= e($c['ikon']) ?> <strong><?= e($c['ad_tr']) ?></strong></td>
+            <td style="font-family:monospace; font-size:.85em; color:#64748b;"><?= e($c['slug']) ?></td>
+            <td><?= (int)$c['sira'] ?></td>
+            <td><?= $c['vitrin'] ? 'Evet' : '—' ?></td>
+            <td><?= $c['aktif'] ? '<span class="yp-rozet yp-rozet-ok">Aktif</span>' : '<span class="yp-rozet yp-rozet-uyari">Pasif</span>' ?></td>
+            <td>
+              <a href="?is=cozum&id=<?= (int)$c['id'] ?>" class="yp-btn yp-btn-kucuk yp-btn-anahat">Duzenle</a>
+              <form method="POST" action="?is=cozum-sil&id=<?= (int)$c['id'] ?>" data-onay="Bu cozumu silmek istediginize emin misiniz?" style="display:inline;">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <button type="submit" class="yp-btn yp-btn-kucuk yp-btn-kirmizi">Sil</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php
+}
+
+function _yp_cozum_form(): void {
+    $id = (int)($_GET['id'] ?? 0);
+    $c = $id ? db_satir('SELECT * FROM cozumler WHERE id = :id', ['id' => $id]) : [];
+    if ($id && !$c) { flash_ekle('hata', 'Cozum bulunamadi'); yonlendir(SITE_URL . '/yonetim.php?is=cozumler'); }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); }
+        else {
+            $veri = [
+                'slug'           => slug_temizle($_POST['slug'] ?? $_POST['ad_tr'] ?? ''),
+                'ad_tr'          => trim((string)($_POST['ad_tr'] ?? '')),
+                'ad_en'          => trim((string)($_POST['ad_en'] ?? '')),
+                'ad_ar'          => trim((string)($_POST['ad_ar'] ?? '')),
+                'ozet_tr'        => trim((string)($_POST['ozet_tr'] ?? '')),
+                'ozet_en'        => trim((string)($_POST['ozet_en'] ?? '')),
+                'ozet_ar'        => trim((string)($_POST['ozet_ar'] ?? '')),
+                'aciklama_tr'    => (string)($_POST['aciklama_tr'] ?? ''),
+                'aciklama_en'    => (string)($_POST['aciklama_en'] ?? ''),
+                'aciklama_ar'    => (string)($_POST['aciklama_ar'] ?? ''),
+                'ikon'           => trim((string)($_POST['ikon'] ?? '')),
+                'ilgili_urunler' => trim((string)($_POST['ilgili_urunler'] ?? '')),
+                'vitrin'         => !empty($_POST['vitrin']) ? 1 : 0,
+                'sira'           => (int)($_POST['sira'] ?? 0),
+                'aktif'          => !empty($_POST['aktif']) ? 1 : 0,
+            ];
+            if (!empty($_FILES['gorsel']['name'])) {
+                $r = dosya_yukle($_FILES['gorsel'], 'cozumler');
+                if ($r['basari']) $veri['gorsel'] = $r['yol'];
+                else flash_ekle('hata', 'Gorsel: ' . $r['hata']);
+            }
+            try {
+                if ($id) {
+                    db_guncelle('cozumler', $veri, 'id = :id', ['id' => $id]);
+                    flash_ekle('ok', 'Cozum guncellendi.');
+                    log_yaz('cozum_guncelle', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+                } else {
+                    $yeniId = db_ekle('cozumler', $veri);
+                    flash_ekle('ok', 'Cozum eklendi.');
+                    log_yaz('cozum_ekle', 'ID: ' . $yeniId, Auth::mevcutAdmin()['id']);
+                }
+                yonlendir(SITE_URL . '/yonetim.php?is=cozumler');
+            } catch (Throwable $e) { flash_ekle('hata', 'Kayit hatasi: ' . $e->getMessage()); }
+        }
+    }
+    ?>
+    <div class="yp-bas"><h1><?= $id ? 'Cozum Duzenle' : 'Yeni Cozum' ?></h1></div>
+    <form method="POST" enctype="multipart/form-data" class="yp-form">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <div class="yp-form-izgara">
+        <div>
+          <label>Ad (TR) *</label>
+          <input type="text" name="ad_tr" value="<?= e($c['ad_tr'] ?? '') ?>" required>
+        </div>
+        <div>
+          <label>Slug <small>(bos birak, otomatik olustur)</small></label>
+          <input type="text" name="slug" value="<?= e($c['slug'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Ad (EN)</label>
+          <input type="text" name="ad_en" value="<?= e($c['ad_en'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Ad (AR)</label>
+          <input type="text" name="ad_ar" value="<?= e($c['ad_ar'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Ikon <small>(emoji)</small></label>
+          <input type="text" name="ikon" value="<?= e($c['ikon'] ?? '') ?>" placeholder="💼">
+        </div>
+        <div>
+          <label>Sira</label>
+          <input type="number" name="sira" value="<?= e((string)($c['sira'] ?? 0)) ?>">
+        </div>
+      </div>
+      <label>Ozet (TR)</label>
+      <textarea name="ozet_tr" rows="2"><?= e($c['ozet_tr'] ?? '') ?></textarea>
+      <label>Ozet (EN)</label>
+      <textarea name="ozet_en" rows="2"><?= e($c['ozet_en'] ?? '') ?></textarea>
+      <label>Ozet (AR)</label>
+      <textarea name="ozet_ar" rows="2" dir="rtl"><?= e($c['ozet_ar'] ?? '') ?></textarea>
+      <label>Aciklama (TR) <small>(HTML destekli)</small></label>
+      <textarea name="aciklama_tr" rows="10"><?= e($c['aciklama_tr'] ?? '') ?></textarea>
+      <label>Aciklama (EN)</label>
+      <textarea name="aciklama_en" rows="6"><?= e($c['aciklama_en'] ?? '') ?></textarea>
+      <label>Aciklama (AR)</label>
+      <textarea name="aciklama_ar" rows="6" dir="rtl"><?= e($c['aciklama_ar'] ?? '') ?></textarea>
+      <label>Ilgili urun slug'lari <small>(virgulle ayrilmis, ornek: led-masa-96x192,led-kursu-p186)</small></label>
+      <input type="text" name="ilgili_urunler" value="<?= e($c['ilgili_urunler'] ?? '') ?>">
+      <label>Gorsel <?php if (!empty($c['gorsel'])): ?><small>(mevcut: <?= e($c['gorsel']) ?>)</small><?php endif; ?></label>
+      <input type="file" name="gorsel" accept="image/*">
+      <div class="yp-form-checkbox-satir">
+        <label><input type="checkbox" name="vitrin" value="1" <?= !empty($c['vitrin']) ? 'checked' : '' ?>> Ana sayfa vitrin</label>
+        <label><input type="checkbox" name="aktif" value="1" <?= !isset($c['aktif']) || !empty($c['aktif']) ? 'checked' : '' ?>> Aktif</label>
+      </div>
+      <div class="yp-form-btn">
+        <button type="submit" class="yp-btn">Kaydet</button>
+        <a href="?is=cozumler" class="yp-btn yp-btn-anahat">Iptal</a>
+      </div>
+    </form>
+    <?php
+}
+
+function _yp_cozum_sil(): void {
+    if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); yonlendir(SITE_URL . '/yonetim.php?is=cozumler'); }
+    $id = (int)($_GET['id'] ?? 0);
+    try {
+        db_sil('cozumler', 'id = :id', ['id' => $id]);
+        flash_ekle('ok', 'Cozum silindi.');
+        log_yaz('cozum_sil', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+    } catch (Throwable $e) { flash_ekle('hata', 'Silme hatasi: ' . $e->getMessage()); }
+    yonlendir(SITE_URL . '/yonetim.php?is=cozumler');
+}
+
+// =================================================================
+// 11) ICERIKLER (blog + haber, v0.3.1)
+// =================================================================
+function _yp_icerikler(): void {
+    $filtre_tip = $_GET['tip'] ?? '';
+    $sql = 'SELECT * FROM icerikler WHERE 1=1';
+    $params = [];
+    if ($filtre_tip === 'blog' || $filtre_tip === 'haber') {
+        $sql .= ' AND tip = :t';
+        $params['t'] = $filtre_tip;
+    }
+    $sql .= ' ORDER BY yayin_tarihi DESC, id DESC';
+    $items = db_liste($sql, $params);
+    ?>
+    <div class="yp-bas">
+      <h1>Blog ve Haberler</h1>
+      <a href="?is=icerik&tip=blog" class="yp-btn">+ Yeni Blog</a>
+      <a href="?is=icerik&tip=haber" class="yp-btn">+ Yeni Haber</a>
+    </div>
+    <div class="yp-filtre" style="margin-bottom:16px;">
+      <a href="?is=icerikler" class="yp-btn yp-btn-kucuk <?= $filtre_tip === '' ? '' : 'yp-btn-anahat' ?>">Hepsi</a>
+      <a href="?is=icerikler&tip=blog" class="yp-btn yp-btn-kucuk <?= $filtre_tip === 'blog' ? '' : 'yp-btn-anahat' ?>">Blog</a>
+      <a href="?is=icerikler&tip=haber" class="yp-btn yp-btn-kucuk <?= $filtre_tip === 'haber' ? '' : 'yp-btn-anahat' ?>">Haber</a>
+    </div>
+    <div class="yp-tablo-sarmal">
+      <table class="yp-tablo">
+        <thead><tr><th>Tip</th><th>Baslik</th><th>Yazar</th><th>Yayin</th><th>Goruntu</th><th>Durum</th><th></th></tr></thead>
+        <tbody>
+        <?php if (!$items): ?>
+          <tr><td colspan="7" style="padding:30px; text-align:center; color:#64748b;">Henuz icerik yok.</td></tr>
+        <?php else: foreach ($items as $it): ?>
+          <tr>
+            <td><span class="yp-rozet <?= $it['tip'] === 'blog' ? 'yp-rozet-info' : 'yp-rozet-uyari' ?>"><?= strtoupper($it['tip']) ?></span></td>
+            <td><strong><?= e($it['baslik_tr']) ?></strong><br><small style="color:#64748b; font-family:monospace;"><?= e($it['slug']) ?></small></td>
+            <td><?= e($it['yazar'] ?? '—') ?></td>
+            <td><?= !empty($it['yayin_tarihi']) ? date('d.m.Y H:i', strtotime($it['yayin_tarihi'])) : '—' ?></td>
+            <td><?= (int)$it['goruntulenme'] ?></td>
+            <td><?= $it['aktif'] ? '<span class="yp-rozet yp-rozet-ok">Aktif</span>' : '<span class="yp-rozet yp-rozet-uyari">Pasif</span>' ?></td>
+            <td>
+              <a href="?is=icerik&id=<?= (int)$it['id'] ?>" class="yp-btn yp-btn-kucuk yp-btn-anahat">Duzenle</a>
+              <form method="POST" action="?is=icerik-sil&id=<?= (int)$it['id'] ?>" data-onay="Silinsin mi?" style="display:inline;">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <button type="submit" class="yp-btn yp-btn-kucuk yp-btn-kirmizi">Sil</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php
+}
+
+function _yp_icerik_form(): void {
+    $id = (int)($_GET['id'] ?? 0);
+    $it = $id ? db_satir('SELECT * FROM icerikler WHERE id = :id', ['id' => $id]) : [];
+    if ($id && !$it) { flash_ekle('hata', 'Icerik bulunamadi'); yonlendir(SITE_URL . '/yonetim.php?is=icerikler'); }
+    $tip_default = $_GET['tip'] ?? $it['tip'] ?? 'blog';
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); }
+        else {
+            $tip = in_array($_POST['tip'] ?? '', ['blog','haber'], true) ? $_POST['tip'] : 'blog';
+            $veri = [
+                'tip'          => $tip,
+                'slug'         => slug_temizle($_POST['slug'] ?? $_POST['baslik_tr'] ?? ''),
+                'baslik_tr'    => trim((string)($_POST['baslik_tr'] ?? '')),
+                'baslik_en'    => trim((string)($_POST['baslik_en'] ?? '')),
+                'baslik_ar'    => trim((string)($_POST['baslik_ar'] ?? '')),
+                'ozet_tr'      => trim((string)($_POST['ozet_tr'] ?? '')),
+                'ozet_en'      => trim((string)($_POST['ozet_en'] ?? '')),
+                'ozet_ar'      => trim((string)($_POST['ozet_ar'] ?? '')),
+                'icerik_tr'    => (string)($_POST['icerik_tr'] ?? ''),
+                'icerik_en'    => (string)($_POST['icerik_en'] ?? ''),
+                'icerik_ar'    => (string)($_POST['icerik_ar'] ?? ''),
+                'yazar'        => trim((string)($_POST['yazar'] ?? '')),
+                'etiketler'    => trim((string)($_POST['etiketler'] ?? '')),
+                'yayin_tarihi' => !empty($_POST['yayin_tarihi']) ? $_POST['yayin_tarihi'] : date('Y-m-d H:i:s'),
+                'aktif'        => !empty($_POST['aktif']) ? 1 : 0,
+            ];
+            if (!empty($_FILES['kapak']['name'])) {
+                $r = dosya_yukle($_FILES['kapak'], 'icerikler');
+                if ($r['basari']) $veri['kapak'] = $r['yol'];
+                else flash_ekle('hata', 'Kapak: ' . $r['hata']);
+            }
+            try {
+                if ($id) {
+                    db_guncelle('icerikler', $veri, 'id = :id', ['id' => $id]);
+                    flash_ekle('ok', 'Icerik guncellendi.');
+                    log_yaz('icerik_guncelle', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+                } else {
+                    $yeniId = db_ekle('icerikler', $veri);
+                    flash_ekle('ok', 'Icerik eklendi.');
+                    log_yaz('icerik_ekle', 'ID: ' . $yeniId, Auth::mevcutAdmin()['id']);
+                }
+                yonlendir(SITE_URL . '/yonetim.php?is=icerikler');
+            } catch (Throwable $e) { flash_ekle('hata', 'Kayit hatasi: ' . $e->getMessage()); }
+        }
+    }
+    ?>
+    <div class="yp-bas"><h1><?= $id ? 'Icerik Duzenle' : 'Yeni Icerik' ?></h1></div>
+    <form method="POST" enctype="multipart/form-data" class="yp-form">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <div class="yp-form-izgara">
+        <div>
+          <label>Tip *</label>
+          <select name="tip" required>
+            <option value="blog" <?= $tip_default === 'blog' ? 'selected' : '' ?>>Blog</option>
+            <option value="haber" <?= $tip_default === 'haber' ? 'selected' : '' ?>>Haber</option>
+          </select>
+        </div>
+        <div>
+          <label>Yayin Tarihi</label>
+          <input type="datetime-local" name="yayin_tarihi" value="<?= e(!empty($it['yayin_tarihi']) ? date('Y-m-d\TH:i', strtotime($it['yayin_tarihi'])) : date('Y-m-d\TH:i')) ?>">
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <label>Baslik (TR) *</label>
+          <input type="text" name="baslik_tr" value="<?= e($it['baslik_tr'] ?? '') ?>" required>
+        </div>
+        <div>
+          <label>Slug</label>
+          <input type="text" name="slug" value="<?= e($it['slug'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Yazar</label>
+          <input type="text" name="yazar" value="<?= e($it['yazar'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Baslik (EN)</label>
+          <input type="text" name="baslik_en" value="<?= e($it['baslik_en'] ?? '') ?>">
+        </div>
+        <div>
+          <label>Baslik (AR)</label>
+          <input type="text" name="baslik_ar" value="<?= e($it['baslik_ar'] ?? '') ?>" dir="rtl">
+        </div>
+      </div>
+      <label>Ozet (TR)</label>
+      <textarea name="ozet_tr" rows="2"><?= e($it['ozet_tr'] ?? '') ?></textarea>
+      <label>Ozet (EN)</label>
+      <textarea name="ozet_en" rows="2"><?= e($it['ozet_en'] ?? '') ?></textarea>
+      <label>Ozet (AR)</label>
+      <textarea name="ozet_ar" rows="2" dir="rtl"><?= e($it['ozet_ar'] ?? '') ?></textarea>
+      <label>Icerik (TR) <small>(HTML destekli)</small></label>
+      <textarea name="icerik_tr" rows="15"><?= e($it['icerik_tr'] ?? '') ?></textarea>
+      <label>Icerik (EN)</label>
+      <textarea name="icerik_en" rows="8"><?= e($it['icerik_en'] ?? '') ?></textarea>
+      <label>Icerik (AR)</label>
+      <textarea name="icerik_ar" rows="8" dir="rtl"><?= e($it['icerik_ar'] ?? '') ?></textarea>
+      <label>Etiketler <small>(virgulle ayrilmis)</small></label>
+      <input type="text" name="etiketler" value="<?= e($it['etiketler'] ?? '') ?>">
+      <label>Kapak Gorseli <?php if (!empty($it['kapak'])): ?><small>(mevcut: <?= e($it['kapak']) ?>)</small><?php endif; ?></label>
+      <input type="file" name="kapak" accept="image/*">
+      <div class="yp-form-checkbox-satir">
+        <label><input type="checkbox" name="aktif" value="1" <?= !isset($it['aktif']) || !empty($it['aktif']) ? 'checked' : '' ?>> Aktif</label>
+      </div>
+      <div class="yp-form-btn">
+        <button type="submit" class="yp-btn">Kaydet</button>
+        <a href="?is=icerikler" class="yp-btn yp-btn-anahat">Iptal</a>
+      </div>
+    </form>
+    <?php
+}
+
+function _yp_icerik_sil(): void {
+    if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); yonlendir(SITE_URL . '/yonetim.php?is=icerikler'); }
+    $id = (int)($_GET['id'] ?? 0);
+    try {
+        db_sil('icerikler', 'id = :id', ['id' => $id]);
+        flash_ekle('ok', 'Icerik silindi.');
+        log_yaz('icerik_sil', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+    } catch (Throwable $e) { flash_ekle('hata', 'Silme hatasi: ' . $e->getMessage()); }
+    yonlendir(SITE_URL . '/yonetim.php?is=icerikler');
+}
+
+// =================================================================
+// 12) MARKALAR (v0.3.1)
+// =================================================================
+function _yp_markalar(): void {
+    $markalar = db_liste('SELECT * FROM markalar ORDER BY sira, id');
+    ?>
+    <div class="yp-bas">
+      <h1>Markalar</h1>
+      <a href="?is=marka" class="yp-btn">+ Yeni Marka</a>
+    </div>
+    <div class="yp-tablo-sarmal">
+      <table class="yp-tablo">
+        <thead><tr><th>Logo</th><th>Ad</th><th>Web</th><th>Sira</th><th>Durum</th><th></th></tr></thead>
+        <tbody>
+        <?php if (!$markalar): ?>
+          <tr><td colspan="6" style="padding:30px; text-align:center; color:#64748b;">Henuz marka yok.</td></tr>
+        <?php else: foreach ($markalar as $m): ?>
+          <tr>
+            <td>
+              <?php if (!empty($m['logo'])): ?>
+                <img src="<?= e(upload($m['logo'])) ?>" alt="<?= e($m['ad']) ?>" style="max-height:32px; max-width:80px;">
+              <?php else: ?>—<?php endif; ?>
+            </td>
+            <td><strong><?= e($m['ad']) ?></strong></td>
+            <td>
+              <?php if (!empty($m['web_url'])): ?>
+                <a href="<?= e($m['web_url']) ?>" target="_blank" rel="noopener" style="font-size:.85em;"><?= e(parse_url($m['web_url'], PHP_URL_HOST) ?: $m['web_url']) ?></a>
+              <?php else: ?>—<?php endif; ?>
+            </td>
+            <td><?= (int)$m['sira'] ?></td>
+            <td><?= $m['aktif'] ? '<span class="yp-rozet yp-rozet-ok">Aktif</span>' : '<span class="yp-rozet yp-rozet-uyari">Pasif</span>' ?></td>
+            <td>
+              <a href="?is=marka&id=<?= (int)$m['id'] ?>" class="yp-btn yp-btn-kucuk yp-btn-anahat">Duzenle</a>
+              <form method="POST" action="?is=marka-sil&id=<?= (int)$m['id'] ?>" data-onay="Silinsin mi?" style="display:inline;">
+                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                <button type="submit" class="yp-btn yp-btn-kucuk yp-btn-kirmizi">Sil</button>
+              </form>
+            </td>
+          </tr>
+        <?php endforeach; endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php
+}
+
+function _yp_marka_form(): void {
+    $id = (int)($_GET['id'] ?? 0);
+    $m = $id ? db_satir('SELECT * FROM markalar WHERE id = :id', ['id' => $id]) : [];
+    if ($id && !$m) { flash_ekle('hata', 'Marka bulunamadi'); yonlendir(SITE_URL . '/yonetim.php?is=markalar'); }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); }
+        else {
+            $veri = [
+                'ad'       => trim((string)($_POST['ad'] ?? '')),
+                'web_url'  => trim((string)($_POST['web_url'] ?? '')),
+                'aciklama' => trim((string)($_POST['aciklama'] ?? '')),
+                'sira'     => (int)($_POST['sira'] ?? 0),
+                'aktif'    => !empty($_POST['aktif']) ? 1 : 0,
+            ];
+            if (!empty($_FILES['logo']['name'])) {
+                $r = dosya_yukle($_FILES['logo'], 'markalar');
+                if ($r['basari']) $veri['logo'] = $r['yol'];
+                else flash_ekle('hata', 'Logo: ' . $r['hata']);
+            } elseif (!$id) {
+                // Yeni eklenirken logo sart
+                flash_ekle('hata', 'Logo zorunludur.');
+                return;
+            }
+            try {
+                if ($id) {
+                    db_guncelle('markalar', $veri, 'id = :id', ['id' => $id]);
+                    flash_ekle('ok', 'Marka guncellendi.');
+                    log_yaz('marka_guncelle', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+                } else {
+                    $yeniId = db_ekle('markalar', $veri);
+                    flash_ekle('ok', 'Marka eklendi.');
+                    log_yaz('marka_ekle', 'ID: ' . $yeniId, Auth::mevcutAdmin()['id']);
+                }
+                yonlendir(SITE_URL . '/yonetim.php?is=markalar');
+            } catch (Throwable $e) { flash_ekle('hata', 'Kayit hatasi: ' . $e->getMessage()); }
+        }
+    }
+    ?>
+    <div class="yp-bas"><h1><?= $id ? 'Marka Duzenle' : 'Yeni Marka' ?></h1></div>
+    <form method="POST" enctype="multipart/form-data" class="yp-form">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <div class="yp-form-izgara">
+        <div>
+          <label>Ad *</label>
+          <input type="text" name="ad" value="<?= e($m['ad'] ?? '') ?>" required>
+        </div>
+        <div>
+          <label>Web URL</label>
+          <input type="url" name="web_url" value="<?= e($m['web_url'] ?? '') ?>" placeholder="https://...">
+        </div>
+        <div>
+          <label>Sira</label>
+          <input type="number" name="sira" value="<?= e((string)($m['sira'] ?? 0)) ?>">
+        </div>
+        <div>
+          <label>Logo <?php if (!empty($m['logo'])): ?><small>(mevcut: <?= e($m['logo']) ?>)</small><?php endif; ?></label>
+          <input type="file" name="logo" accept="image/*" <?= $id ? '' : 'required' ?>>
+        </div>
+      </div>
+      <label>Aciklama <small>(opsiyonel)</small></label>
+      <input type="text" name="aciklama" value="<?= e($m['aciklama'] ?? '') ?>">
+      <div class="yp-form-checkbox-satir">
+        <label><input type="checkbox" name="aktif" value="1" <?= !isset($m['aktif']) || !empty($m['aktif']) ? 'checked' : '' ?>> Aktif</label>
+      </div>
+      <div class="yp-form-btn">
+        <button type="submit" class="yp-btn">Kaydet</button>
+        <a href="?is=markalar" class="yp-btn yp-btn-anahat">Iptal</a>
+      </div>
+    </form>
+    <?php
+}
+
+function _yp_marka_sil(): void {
+    if (!csrf_dogrula($_POST['csrf'] ?? null)) { flash_ekle('hata', 'CSRF hatasi'); yonlendir(SITE_URL . '/yonetim.php?is=markalar'); }
+    $id = (int)($_GET['id'] ?? 0);
+    try {
+        db_sil('markalar', 'id = :id', ['id' => $id]);
+        flash_ekle('ok', 'Marka silindi.');
+        log_yaz('marka_sil', 'ID: ' . $id, Auth::mevcutAdmin()['id']);
+    } catch (Throwable $e) { flash_ekle('hata', 'Silme hatasi: ' . $e->getMessage()); }
+    yonlendir(SITE_URL . '/yonetim.php?is=markalar');
 }
 
 // =================================================================

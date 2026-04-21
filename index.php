@@ -179,6 +179,79 @@ elseif ($ilk === 'referans' && $iki !== '') {
         $metaBaslik = ($r[$musKol] ?? $r['musteri_tr']) . ' - ' . ayar('firma_adi');
     }
 }
+elseif ($ilk === 'cozumler') {
+    $tipi = 'cozumler';
+    $veri['cozumler'] = db_liste('SELECT * FROM cozumler WHERE aktif = 1 ORDER BY sira, id');
+    $metaBaslik = (dil() === 'en' ? 'Solutions' : (dil() === 'ar' ? 'الحلول' : 'Çözümler')) . ' - ' . ayar('firma_adi');
+}
+elseif ($ilk === 'cozum' && $iki !== '') {
+    $c = db_satir('SELECT * FROM cozumler WHERE slug = :s AND aktif = 1', ['s' => $iki]);
+    if (!$c) { $tipi = '404'; }
+    else {
+        $tipi = 'cozum';
+        $veri['cozum'] = $c;
+        // ilgili_urunler virgulle ayrilmis slug'lardan liste cek
+        $iliskili = [];
+        if (!empty($c['ilgili_urunler'])) {
+            $slugs = array_filter(array_map('trim', explode(',', $c['ilgili_urunler'])));
+            if ($slugs) {
+                $in  = implode(',', array_fill(0, count($slugs), '?'));
+                $iliskili = db_liste(
+                    "SELECT u.*, k.slug AS kategori_slug, k.ad_tr AS kategori_ad_tr
+                     FROM urunler u JOIN kategoriler k ON k.id = u.kategori_id
+                     WHERE u.aktif = 1 AND u.slug IN ($in)
+                     ORDER BY FIELD(u.slug, $in)",
+                    array_merge(array_values($slugs), array_values($slugs))
+                );
+            }
+        }
+        $veri['iliskili_urunler'] = $iliskili;
+        $veri['diger_cozumler'] = db_liste(
+            'SELECT slug, ad_tr, ad_en, ad_ar, ozet_tr, ozet_en, ozet_ar, ikon, gorsel FROM cozumler
+             WHERE aktif = 1 AND id <> :id ORDER BY sira LIMIT 4',
+            ['id' => $c['id']]
+        );
+        $metaBaslik = ($c[$adKol] ?? $c['ad_tr']) . ' - ' . ayar('firma_adi');
+        $metaAciklama = kisalt((string)($c['ozet_' . dil()] ?? $c['ozet_tr'] ?? ''), 160);
+    }
+}
+elseif ($ilk === 'blog') {
+    $tipi = 'blog_liste';
+    $veri['yazilar'] = db_liste(
+        "SELECT * FROM icerikler WHERE tip = 'blog' AND aktif = 1 ORDER BY yayin_tarihi DESC, id DESC"
+    );
+    $metaBaslik = 'Blog - ' . ayar('firma_adi');
+    if ($iki !== '') {
+        // /blog/X yonlendirsin /yazi/X'e, ama yazi rotasini birlesik tut
+        $y = db_satir("SELECT * FROM icerikler WHERE tip = 'blog' AND slug = :s AND aktif = 1", ['s' => $iki]);
+        if (!$y) { $tipi = '404'; }
+        else {
+            $tipi = 'yazi';
+            $veri['yazi'] = $y;
+            // goruntulenme artir
+            try { db()->prepare('UPDATE icerikler SET goruntulenme = goruntulenme + 1 WHERE id = :id')->execute(['id' => $y['id']]); } catch (Throwable $_) {}
+            $metaBaslik = ($y['baslik_' . dil()] ?? $y['baslik_tr']) . ' - ' . ayar('firma_adi');
+            $metaAciklama = kisalt((string)($y['ozet_' . dil()] ?? $y['ozet_tr'] ?? ''), 160);
+        }
+    }
+}
+elseif ($ilk === 'haberler') {
+    $tipi = 'haber_liste';
+    $veri['haberler'] = db_liste(
+        "SELECT * FROM icerikler WHERE tip = 'haber' AND aktif = 1 ORDER BY yayin_tarihi DESC, id DESC"
+    );
+    $metaBaslik = (dil() === 'en' ? 'News' : (dil() === 'ar' ? 'أخبار' : 'Haberler')) . ' - ' . ayar('firma_adi');
+}
+elseif ($ilk === 'haber' && $iki !== '') {
+    $h = db_satir("SELECT * FROM icerikler WHERE tip = 'haber' AND slug = :s AND aktif = 1", ['s' => $iki]);
+    if (!$h) { $tipi = '404'; }
+    else {
+        $tipi = 'haber';
+        $veri['haber'] = $h;
+        try { db()->prepare('UPDATE icerikler SET goruntulenme = goruntulenme + 1 WHERE id = :id')->execute(['id' => $h['id']]); } catch (Throwable $_) {}
+        $metaBaslik = ($h['baslik_' . dil()] ?? $h['baslik_tr']) . ' - ' . ayar('firma_adi');
+    }
+}
 elseif ($ilk === 'hakkimizda' || $ilk === 'sayfa') {
     $slug = $ilk === 'hakkimizda' ? 'hakkimizda' : $iki;
     $s = db_satir('SELECT * FROM sayfalar WHERE slug = :s AND aktif = 1', ['s' => $slug]);
@@ -280,7 +353,10 @@ $langHtml = dil();
     <nav class="ana-menu" id="anaMenu">
       <a href="<?= e(url()) ?>" class="<?= $tipi === 'anasayfa' ? 'aktif' : '' ?>"><?= e(t('menu.anasayfa')) ?></a>
       <a href="<?= e(url('urunler')) ?>" class="<?= in_array($tipi, ['urunler','kategori','urun'], true) ? 'aktif' : '' ?>"><?= e(t('menu.urunler')) ?></a>
+      <a href="<?= e(url('cozumler')) ?>" class="<?= in_array($tipi, ['cozumler','cozum'], true) ? 'aktif' : '' ?>"><?= e(dil() === 'en' ? 'Solutions' : (dil() === 'ar' ? 'الحلول' : 'Çözümler')) ?></a>
       <a href="<?= e(url('referanslar')) ?>" class="<?= in_array($tipi, ['referanslar','referans'], true) ? 'aktif' : '' ?>"><?= e(t('menu.referanslar')) ?></a>
+      <a href="<?= e(url('blog')) ?>" class="<?= in_array($tipi, ['blog_liste','yazi'], true) ? 'aktif' : '' ?>">Blog</a>
+      <a href="<?= e(url('haberler')) ?>" class="<?= in_array($tipi, ['haber_liste','haber'], true) ? 'aktif' : '' ?>"><?= e(dil() === 'en' ? 'News' : (dil() === 'ar' ? 'أخبار' : 'Haberler')) ?></a>
       <?php foreach ($menuSayfalari as $ms): ?>
         <a href="<?= e(url('sayfa/' . $ms['slug'])) ?>" class="<?= $tipi === 'sayfa' && !empty($veri['sayfa']) && $veri['sayfa']['slug'] === $ms['slug'] ? 'aktif' : '' ?>"><?= e($ms[$baslikKol] ?? $ms['baslik_tr']) ?></a>
       <?php endforeach; ?>
@@ -304,6 +380,12 @@ switch ($tipi) {
     case 'sayfa':       _view_sayfa($veri, $baslikKol, $icerikKol); break;
     case 'iletisim':    _view_iletisim(); break;
     case 'teklif':      _view_teklif($veri, $adKol); break;
+    case 'cozumler':    _view_cozumler($veri, $adKol, $ozKol); break;
+    case 'cozum':       _view_cozum($veri, $adKol, $ozKol, $acKol); break;
+    case 'blog_liste':  _view_icerik_liste($veri['yazilar'] ?? [], 'blog'); break;
+    case 'haber_liste': _view_icerik_liste($veri['haberler'] ?? [], 'haber'); break;
+    case 'yazi':        _view_icerik_detay($veri['yazi'] ?? [], 'blog'); break;
+    case 'haber':       _view_icerik_detay($veri['haber'] ?? [], 'haber'); break;
     case '404':         default: _view_404(); break;
 }
 ?>
@@ -406,6 +488,14 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     } catch (Throwable $e) {
         $sliderler = [];
     }
+    // Ana sayfa icin cozumler, son icerikler ve markalar (v0.3.1)
+    try { $vitrinCozumler = db_liste('SELECT * FROM cozumler WHERE aktif = 1 AND vitrin = 1 ORDER BY sira, id LIMIT 6'); }
+    catch (Throwable $e) { $vitrinCozumler = []; }
+    try { $sonYazilar = db_liste("SELECT * FROM icerikler WHERE aktif = 1 ORDER BY yayin_tarihi DESC, id DESC LIMIT 4"); }
+    catch (Throwable $e) { $sonYazilar = []; }
+    try { $markalar = db_liste('SELECT * FROM markalar WHERE aktif = 1 ORDER BY sira, id'); }
+    catch (Throwable $e) { $markalar = []; }
+
     $baslikKol   = 'baslik_' . $lang;
     $aciklamaKol = 'aciklama_' . $lang;
     $butonKol    = 'buton_metin_' . $lang;
@@ -567,6 +657,92 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
         <a href="<?= e(url('referanslar')) ?>" class="v3-btn v3-btn-ikincil v3-ref-hepsi">
           <?= e(dil() === 'en' ? 'View All Projects' : (dil() === 'ar' ? 'عرض المشاريع' : 'Tüm Projeleri Gör')) ?> →
         </a>
+      </section>
+      <?php endif; ?>
+
+      <!-- ========== COZUMLER (v0.3.1) ========== -->
+      <?php if (!empty($vitrinCozumler)): ?>
+      <section class="v3-cozumler">
+        <div class="v3-cozumler-bas">
+          <span class="v3-ustbas-etiket"><?= e($lang === 'en' ? 'SOLUTIONS' : ($lang === 'ar' ? 'حلول' : 'ÇÖZÜMLER')) ?></span>
+          <h2 class="v3-coz-baslik"><?= e(ayar('cozumler_baslik_' . $lang, 'Kullanım Alanlarına Özel LED Çözümler')) ?></h2>
+        </div>
+        <div class="v3-coz-izgara">
+          <?php foreach ($vitrinCozumler as $cz): ?>
+            <a href="<?= e(url('cozum/' . $cz['slug'])) ?>" class="v3-coz-kart">
+              <span class="v3-coz-ikon"><?= e($cz['ikon'] ?: '◈') ?></span>
+              <h3 class="v3-coz-kart-baslik"><?= e($cz['ad_' . $lang] ?? $cz['ad_tr']) ?></h3>
+              <?php if (!empty($cz['ozet_' . $lang] ?? $cz['ozet_tr'])): ?>
+                <p class="v3-coz-kart-ozet"><?= e(kisalt($cz['ozet_' . $lang] ?? $cz['ozet_tr'], 110)) ?></p>
+              <?php endif; ?>
+              <span class="v3-coz-kart-ok"><?= e($lang === 'en' ? 'Explore' : ($lang === 'ar' ? 'استكشف' : 'Keşfet')) ?> →</span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+        <a href="<?= e(url('cozumler')) ?>" class="v3-btn v3-btn-ikincil v3-ref-hepsi">
+          <?= e($lang === 'en' ? 'All Solutions' : ($lang === 'ar' ? 'جميع الحلول' : 'Tüm Çözümler')) ?> →
+        </a>
+      </section>
+      <?php endif; ?>
+
+      <!-- ========== MARKALAR (v0.3.1) ========== -->
+      <?php if (!empty($markalar)): ?>
+      <section class="v3-markalar">
+        <div class="v3-markalar-bas">
+          <span class="v3-ustbas-etiket"><?= e($lang === 'en' ? 'PARTNERS' : ($lang === 'ar' ? 'شركاء' : 'TEKNOLOJİ ORTAKLARI')) ?></span>
+          <h2 class="v3-mar-baslik"><?= e(ayar('markalar_baslik_' . $lang, 'Güçlü Teknoloji Ortakları')) ?></h2>
+          <p class="v3-mar-alt"><?= e($lang === 'en' ? 'World-leading brands powering our LED systems.' : ($lang === 'ar' ? 'علامات تجارية رائدة' : 'LED sistemlerimizde kullandığımız dünya lideri teknoloji markaları.')) ?></p>
+        </div>
+        <div class="v3-marka-izgara">
+          <?php foreach ($markalar as $m): ?>
+            <?php $iccontent = '<div class="v3-marka-kart"><img src="' . e(upload($m['logo'])) . '" alt="' . e($m['ad']) . '" loading="lazy"></div>'; ?>
+            <?php if (!empty($m['web_url'])): ?>
+              <a href="<?= e($m['web_url']) ?>" target="_blank" rel="noopener" class="v3-marka-link" title="<?= e($m['ad']) ?>">
+                <?= $iccontent ?>
+              </a>
+            <?php else: ?>
+              <div class="v3-marka-link" title="<?= e($m['ad']) ?>"><?= $iccontent ?></div>
+            <?php endif; ?>
+          <?php endforeach; ?>
+        </div>
+      </section>
+      <?php endif; ?>
+
+      <!-- ========== SON YAZILAR (v0.3.1) ========== -->
+      <?php if (!empty($sonYazilar)): ?>
+      <section class="v3-icerik-bolum">
+        <div class="v3-ic-bolum-bas">
+          <span class="v3-ustbas-etiket"><?= e($lang === 'en' ? 'JOURNAL' : ($lang === 'ar' ? 'مجلة' : 'GÜNLÜK')) ?></span>
+          <h2 class="v3-ic-baslik"><?= e(ayar('blog_baslik_' . $lang, 'Son Yazılar ve Haberler')) ?></h2>
+        </div>
+        <div class="v3-ic-izgara">
+          <?php foreach ($sonYazilar as $it):
+            $url = $it['tip'] === 'blog' ? url('blog/' . $it['slug']) : url('haber/' . $it['slug']);
+            $tarih = !empty($it['yayin_tarihi']) ? date('d.m.Y', strtotime($it['yayin_tarihi'])) : '';
+          ?>
+            <a href="<?= e($url) ?>" class="v3-ic-kart">
+              <?php if (!empty($it['kapak'])): ?>
+                <div class="v3-ic-gorsel"><img src="<?= e(upload($it['kapak'])) ?>" alt="<?= e($it['baslik_' . $lang] ?? $it['baslik_tr']) ?>" loading="lazy"></div>
+              <?php else: ?>
+                <div class="v3-ic-placeholder"><?= $it['tip'] === 'blog' ? '📖' : '📰' ?></div>
+              <?php endif; ?>
+              <div class="v3-ic-gvd">
+                <div class="v3-ic-meta">
+                  <span class="v3-ic-tip v3-ic-tip-<?= e($it['tip']) ?>"><?= $it['tip'] === 'blog' ? 'BLOG' : 'HABER' ?></span>
+                  <?php if ($tarih): ?><span class="v3-ic-tarih"><?= e($tarih) ?></span><?php endif; ?>
+                </div>
+                <h3 class="v3-ic-baslik-kart"><?= e($it['baslik_' . $lang] ?? $it['baslik_tr']) ?></h3>
+                <?php if (!empty($it['ozet_' . $lang] ?? $it['ozet_tr'])): ?>
+                  <p class="v3-ic-ozet"><?= e(kisalt($it['ozet_' . $lang] ?? $it['ozet_tr'], 110)) ?></p>
+                <?php endif; ?>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+        <div class="v3-ic-alt-btn">
+          <a href="<?= e(url('blog')) ?>" class="v3-btn v3-btn-ikincil"><?= e($lang === 'en' ? 'All Articles' : ($lang === 'ar' ? 'جميع المقالات' : 'Tüm Yazılar')) ?> →</a>
+          <a href="<?= e(url('haberler')) ?>" class="v3-btn v3-btn-ikincil"><?= e($lang === 'en' ? 'All News' : ($lang === 'ar' ? 'جميع الأخبار' : 'Tüm Haberler')) ?> →</a>
+        </div>
       </section>
       <?php endif; ?>
 
@@ -1004,6 +1180,239 @@ function _view_teklif(array $veri, string $adKol): void {
           <button type="submit" class="btn btn-renk btn-buyuk"><?= e(t('genel.teklif_al')) ?></button>
           <div class="form-durum" aria-live="polite"></div>
         </form>
+      </div>
+    </section>
+    <?php
+}
+
+function _view_cozumler(array $veri, string $adKol, string $ozKol): void {
+    $cozumler = $veri['cozumler'] ?? [];
+    ?>
+    <section class="bolum">
+      <div class="sarmal">
+        <nav class="ekmek"><a href="<?= e(url()) ?>"><?= e(t('menu.anasayfa')) ?></a> / <span><?= e(dil() === 'en' ? 'Solutions' : (dil() === 'ar' ? 'الحلول' : 'Çözümler')) ?></span></nav>
+        <div class="sayfa-bas">
+          <h1><?= e(dil() === 'en' ? 'Solutions by Application' : (dil() === 'ar' ? 'حلول حسب التطبيق' : 'Kullanım Alanına Özel Çözümler')) ?></h1>
+          <p><?= e(dil() === 'en' ? 'Tailored LED and structural solutions for every sector and environment.' : (dil() === 'ar' ? 'حلول مخصصة لكل قطاع' : 'Her sektöre ve her mekâna özel LED ve yapısal çözümler.')) ?></p>
+        </div>
+        <div class="cozum-izgara">
+          <?php foreach ($cozumler as $c): ?>
+            <a href="<?= e(url('cozum/' . $c['slug'])) ?>" class="cozum-kart">
+              <?php if (!empty($c['gorsel'])): ?>
+                <div class="cozum-kart-gorsel">
+                  <img src="<?= e(upload($c['gorsel'])) ?>" alt="<?= e($c[$adKol] ?? $c['ad_tr']) ?>" loading="lazy">
+                </div>
+              <?php else: ?>
+                <div class="cozum-kart-ikon"><?= e($c['ikon'] ?: '◈') ?></div>
+              <?php endif; ?>
+              <h3><?= e($c[$adKol] ?? $c['ad_tr']) ?></h3>
+              <?php if (!empty($c[$ozKol] ?? $c['ozet_tr'])): ?>
+                <p><?= e($c[$ozKol] ?? $c['ozet_tr']) ?></p>
+              <?php endif; ?>
+              <span class="cozum-kart-ok"><?= e(dil() === 'en' ? 'Details' : (dil() === 'ar' ? 'تفاصيل' : 'Detaylar')) ?> →</span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+    <?php
+}
+
+function _view_cozum(array $veri, string $adKol, string $ozKol, string $acKol): void {
+    $c = $veri['cozum'];
+    $iliskili = $veri['iliskili_urunler'] ?? [];
+    $diger = $veri['diger_cozumler'] ?? [];
+    $lang = dil();
+    ?>
+    <section class="cozum-hero">
+      <div class="sarmal">
+        <nav class="ekmek">
+          <a href="<?= e(url()) ?>"><?= e(t('menu.anasayfa')) ?></a> /
+          <a href="<?= e(url('cozumler')) ?>"><?= e($lang === 'en' ? 'Solutions' : ($lang === 'ar' ? 'الحلول' : 'Çözümler')) ?></a> /
+          <span><?= e($c[$adKol] ?? $c['ad_tr']) ?></span>
+        </nav>
+        <div class="cozum-hero-ic">
+          <span class="cozum-hero-ikon"><?= e($c['ikon'] ?: '◈') ?></span>
+          <h1><?= e($c[$adKol] ?? $c['ad_tr']) ?></h1>
+          <?php if (!empty($c[$ozKol] ?? $c['ozet_tr'])): ?>
+            <p class="cozum-hero-ozet"><?= e($c[$ozKol] ?? $c['ozet_tr']) ?></p>
+          <?php endif; ?>
+          <div class="cozum-hero-btn">
+            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk"><?= e(t('home.hero_cta')) ?></a>
+            <a href="<?= e(url('iletisim')) ?>" class="btn btn-anahat"><?= e(t('menu.iletisim')) ?></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <?php if (!empty($c[$acKol] ?? $c['aciklama_tr'])): ?>
+    <section class="bolum">
+      <div class="sarmal sarmal-dar">
+        <div class="icerik cms">
+          <?= $c[$acKol] ?? $c['aciklama_tr'] /* HTML allowed */ ?>
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (!empty($iliskili)): ?>
+    <section class="bolum urun-bolumu">
+      <div class="sarmal">
+        <div class="bolum-bas">
+          <h2><?= e($lang === 'en' ? 'Recommended Products' : ($lang === 'ar' ? 'منتجات موصى بها' : 'Bu Çözüm İçin Önerilen Ürünler')) ?></h2>
+        </div>
+        <div class="urun-izgara">
+          <?php foreach ($iliskili as $u): ?>
+            <article class="urun-kart">
+              <a href="<?= e(url('urun/' . $u['slug'])) ?>" class="urun-gorsel">
+                <?php if ($u['ana_gorsel']): ?>
+                  <img src="<?= e(upload($u['ana_gorsel'])) ?>" alt="<?= e($u[$adKol] ?? $u['ad_tr']) ?>" loading="lazy">
+                <?php else: ?>
+                  <div class="urun-placeholder">◈</div>
+                <?php endif; ?>
+              </a>
+              <div class="urun-gvd">
+                <h3><a href="<?= e(url('urun/' . $u['slug'])) ?>"><?= e($u[$adKol] ?? $u['ad_tr']) ?></a></h3>
+                <?php if ($u['piksel']): ?><span class="urun-etiket"><?= e($u['piksel']) ?></span><?php endif; ?>
+                <p><?= e(kisalt($u[$ozKol] ?? $u['ozet_tr'] ?? '', 90)) ?></p>
+                <a href="<?= e(url('urun/' . $u['slug'])) ?>" class="urun-btn"><?= e(t('genel.detay')) ?></a>
+              </div>
+            </article>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (!empty($diger)): ?>
+    <section class="bolum">
+      <div class="sarmal">
+        <div class="bolum-bas">
+          <h2><?= e($lang === 'en' ? 'Other Solutions' : ($lang === 'ar' ? 'حلول أخرى' : 'Diğer Çözümler')) ?></h2>
+          <a href="<?= e(url('cozumler')) ?>" class="bolum-hepsi"><?= e(t('genel.tumunu_gor')) ?> →</a>
+        </div>
+        <div class="cozum-izgara">
+          <?php foreach ($diger as $d): ?>
+            <a href="<?= e(url('cozum/' . $d['slug'])) ?>" class="cozum-kart">
+              <?php if (!empty($d['gorsel'])): ?>
+                <div class="cozum-kart-gorsel"><img src="<?= e(upload($d['gorsel'])) ?>" alt="<?= e($d[$adKol] ?? $d['ad_tr']) ?>" loading="lazy"></div>
+              <?php else: ?>
+                <div class="cozum-kart-ikon"><?= e($d['ikon'] ?: '◈') ?></div>
+              <?php endif; ?>
+              <h3><?= e($d[$adKol] ?? $d['ad_tr']) ?></h3>
+              <?php if (!empty($d[$ozKol] ?? $d['ozet_tr'])): ?><p><?= e($d[$ozKol] ?? $d['ozet_tr']) ?></p><?php endif; ?>
+              <span class="cozum-kart-ok"><?= e(t('genel.detay')) ?> →</span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+    <?php
+}
+
+function _view_icerik_liste(array $items, string $tip): void {
+    $lang = dil();
+    $baslikKol = 'baslik_' . $lang;
+    $ozetKol = 'ozet_' . $lang;
+    $sayfaBaslik = $tip === 'blog'
+        ? ($lang === 'en' ? 'Blog' : ($lang === 'ar' ? 'المدونة' : 'Blog'))
+        : ($lang === 'en' ? 'News' : ($lang === 'ar' ? 'أخبار' : 'Haberler'));
+    $altBaslik = $tip === 'blog'
+        ? ($lang === 'en' ? 'Insights, guides and technical notes on LED technology.' : ($lang === 'ar' ? 'مقالات تقنية' : 'LED teknolojisi üzerine makaleler, rehberler ve teknik notlar.'))
+        : ($lang === 'en' ? 'Company announcements, project milestones and news.' : ($lang === 'ar' ? 'إعلانات الشركة' : 'Şirket duyuruları, proje kilometre taşları ve haberler.'));
+    ?>
+    <section class="bolum">
+      <div class="sarmal">
+        <nav class="ekmek"><a href="<?= e(url()) ?>"><?= e(t('menu.anasayfa')) ?></a> / <span><?= e($sayfaBaslik) ?></span></nav>
+        <div class="sayfa-bas">
+          <h1><?= e($sayfaBaslik) ?></h1>
+          <p><?= e($altBaslik) ?></p>
+        </div>
+        <?php if (empty($items)): ?>
+          <div class="bilgi-kutu"><?= e($lang === 'en' ? 'No content yet.' : ($lang === 'ar' ? 'لا يوجد محتوى' : 'Henüz içerik yok.')) ?></div>
+        <?php else: ?>
+          <div class="icerik-izgara">
+            <?php foreach ($items as $it):
+              $url = $tip === 'blog' ? url('blog/' . $it['slug']) : url('haber/' . $it['slug']);
+              $tarih = !empty($it['yayin_tarihi']) ? date('d.m.Y', strtotime($it['yayin_tarihi'])) : '';
+            ?>
+              <a href="<?= e($url) ?>" class="icerik-kart">
+                <div class="icerik-kart-gorsel">
+                  <?php if (!empty($it['kapak'])): ?>
+                    <img src="<?= e(upload($it['kapak'])) ?>" alt="<?= e($it[$baslikKol] ?? $it['baslik_tr']) ?>" loading="lazy">
+                  <?php else: ?>
+                    <div class="icerik-kart-placeholder"><?= $tip === 'blog' ? '📖' : '📰' ?></div>
+                  <?php endif; ?>
+                </div>
+                <div class="icerik-kart-gvd">
+                  <div class="icerik-kart-meta">
+                    <span class="icerik-kart-tip"><?= $tip === 'blog' ? 'BLOG' : 'HABER' ?></span>
+                    <?php if ($tarih): ?><span class="icerik-kart-tarih"><?= e($tarih) ?></span><?php endif; ?>
+                  </div>
+                  <h3><?= e($it[$baslikKol] ?? $it['baslik_tr']) ?></h3>
+                  <?php if (!empty($it[$ozetKol] ?? $it['ozet_tr'])): ?>
+                    <p><?= e(kisalt($it[$ozetKol] ?? $it['ozet_tr'], 140)) ?></p>
+                  <?php endif; ?>
+                  <span class="icerik-kart-ok"><?= e($lang === 'en' ? 'Read' : ($lang === 'ar' ? 'اقرأ' : 'Devamını Oku')) ?> →</span>
+                </div>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    </section>
+    <?php
+}
+
+function _view_icerik_detay(array $it, string $tip): void {
+    if (empty($it)) { _view_404(); return; }
+    $lang = dil();
+    $baslikKol = 'baslik_' . $lang;
+    $icerikKol = 'icerik_' . $lang;
+    $ozetKol   = 'ozet_' . $lang;
+    $tarih = !empty($it['yayin_tarihi']) ? date('d.m.Y', strtotime($it['yayin_tarihi'])) : '';
+    $listeUrl = $tip === 'blog' ? url('blog') : url('haberler');
+    $listeAd  = $tip === 'blog'
+        ? ($lang === 'en' ? 'Blog' : ($lang === 'ar' ? 'المدونة' : 'Blog'))
+        : ($lang === 'en' ? 'News' : ($lang === 'ar' ? 'أخبار' : 'Haberler'));
+    ?>
+    <section class="bolum">
+      <div class="sarmal sarmal-dar">
+        <nav class="ekmek">
+          <a href="<?= e(url()) ?>"><?= e(t('menu.anasayfa')) ?></a> /
+          <a href="<?= e($listeUrl) ?>"><?= e($listeAd) ?></a> /
+          <span><?= e($it[$baslikKol] ?? $it['baslik_tr']) ?></span>
+        </nav>
+        <div class="icerik-detay-bas">
+          <div class="icerik-detay-meta">
+            <span class="icerik-kart-tip"><?= $tip === 'blog' ? 'BLOG' : 'HABER' ?></span>
+            <?php if ($tarih): ?><span class="icerik-kart-tarih"><?= e($tarih) ?></span><?php endif; ?>
+            <?php if (!empty($it['yazar'])): ?><span class="icerik-kart-yazar">· <?= e($it['yazar']) ?></span><?php endif; ?>
+          </div>
+          <h1><?= e($it[$baslikKol] ?? $it['baslik_tr']) ?></h1>
+          <?php if (!empty($it[$ozetKol] ?? $it['ozet_tr'])): ?>
+            <p class="icerik-detay-ozet"><?= e($it[$ozetKol] ?? $it['ozet_tr']) ?></p>
+          <?php endif; ?>
+        </div>
+        <?php if (!empty($it['kapak'])): ?>
+          <div class="icerik-detay-kapak">
+            <img src="<?= e(upload($it['kapak'])) ?>" alt="<?= e($it[$baslikKol] ?? $it['baslik_tr']) ?>">
+          </div>
+        <?php endif; ?>
+        <div class="icerik cms">
+          <?= $it[$icerikKol] ?? $it['icerik_tr'] ?? '' /* HTML */ ?>
+        </div>
+        <?php if (!empty($it['etiketler'])): ?>
+          <div class="icerik-etiketler">
+            <?php foreach (explode(',', $it['etiketler']) as $et): $et = trim($et); if (!$et) continue; ?>
+              <span class="icerik-etiket">#<?= e($et) ?></span>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+        <div class="icerik-detay-alt">
+          <a href="<?= e($listeUrl) ?>" class="btn btn-anahat">← <?= e($lang === 'en' ? 'Back to ' : ($lang === 'ar' ? 'العودة' : 'Geri: ')) ?><?= e($listeAd) ?></a>
+        </div>
       </div>
     </section>
     <?php
