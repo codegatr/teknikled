@@ -1,0 +1,63 @@
+/* =================================================================
+   TeknikLED v0.1.0 - RTL Ek Stil (Arapca)
+   Sadece <html dir="rtl"> durumunda yuklenir.
+   ================================================================= */
+
+body { text-align: right; }
+
+.ust-iletisim a { flex-direction: row-reverse; }
+
+.ana-menu a.aktif::after { left: auto; right: 20%; }
+
+.hero-sarmal { direction: rtl; }
+.hero-metin { text-align: right; }
+.hero-rgb { direction: ltr; }     /* R-G-B mantik olarak LTR kalmali */
+
+.bolum-bas.sol { text-align: right; }
+
+.urun-bolumu .bolum-bas,
+.referans-bolumu .bolum-bas {
+  flex-direction: row-reverse;
+}
+
+.ekmek { text-align: right; }
+.ekmek a { margin: 0; }
+
+.urun-kart, .referans-kart, .neden-kart, .kat-kart { text-align: right; }
+
+.kat-kart::before { transform-origin: right; }
+
+.il-kart { border-left: none; border-right: 3px solid var(--c-b); }
+
+.ozellik-tablo th, .ozellik-tablo td { text-align: right; }
+
+.alt-sarmal { direction: rtl; }
+.alt-blok { text-align: right; }
+
+.sosyal { justify-content: flex-start; }
+
+.wa-yuzen { right: auto; left: 24px; }
+
+.urun-rozet { left: auto; right: 12px; }
+
+/* Form alanlari */
+.form-alan label { text-align: right; }
+.form-alan input, .form-alan textarea, .form-alan select { text-align: right; }
+.form-alan input[type="email"], .form-alan input[type="tel"], .form-alan input[type="url"], .form-alan input[type="number"] { direction: ltr; text-align: left; }
+
+/* Dil secici LTR kalsin */
+.dil-secici { direction: ltr; }
+
+/* Ekmek ayraci */
+.ekmek { direction: rtl; }
+
+/* Menu CTA margin */
+.ana-menu a.menu-cta { margin-left: 0; margin-right: 8px; }
+
+@media (max-width: 768px) {
+  .wa-yuzen { left: 16px; }
+}
+
+/* Arapça fontu daha rahat okunsun */
+body { font-size: 16.5px; line-height: 1.75; }
+h1, h2, h3 { line-height: 1.4; }

@@ -1,0 +1,61 @@
+# TeknikLED .htaccess v0.1.0
+# CODEGA - codega.com.tr
+
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # config.php erisimini engelle
+    RewriteRule ^config\.php$ - [F,L]
+    RewriteRule ^config\.sample\.php$ - [F,L]
+    RewriteRule ^schema\.sql$ - [F,L]
+    RewriteRule ^\.git - [F,L]
+
+    # inc/ ve updates/ klasorlerini disa kapat
+    RewriteRule ^inc/ - [F,L]
+    RewriteRule ^updates/ - [F,L]
+
+    # Arka panel kurulum yoksa calisir, sonra silinebilir
+    # RewriteRule ^install\.php$ - [F,L]
+
+    # Gercek dosya/klasor yoksa index.php'ye yonlendir
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php?rota=$1 [L,QSA]
+</IfModule>
+
+# Guvenlik header'lari
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Cache ayarlari
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Gzip sikistirma
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json
+</IfModule>
+
+# UTF-8 default
+AddDefaultCharset UTF-8
+
+# PHP timezone (sunucuda override ederse)
+<IfModule mod_php.c>
+    php_value date.timezone "Europe/Istanbul"
+</IfModule>

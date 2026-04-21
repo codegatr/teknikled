@@ -1,0 +1,13 @@
+# uploads klasoru - PHP yurutme yasak, sadece media izinli
+<FilesMatch "\.(php|phar|phtml|phps|pl|py|jsp|asp|htm|html|shtml|sh|cgi)$">
+    Require all denied
+</FilesMatch>
+
+# Sadece image/video/pdf izin ver
+<FilesMatch "\.(jpg|jpeg|png|webp|gif|svg|mp4|webm|pdf)$">
+    Require all granted
+</FilesMatch>
+
+Options -ExecCGI -Indexes
+RemoveHandler .php .phtml .phar
+php_flag engine off

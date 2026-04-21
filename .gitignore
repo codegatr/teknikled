@@ -1,0 +1,28 @@
+# Hassas / kullanici ozelligi dosyalar
+config.php
+
+# Yuklenen medyalar
+uploads/urunler/*
+uploads/kategoriler/*
+uploads/referanslar/*
+!uploads/**/.gitkeep
+
+# Update ZIP'leri
+updates/*.zip
+updates/extract_*
+
+# Oturum / gecici
+*.log
+.sessions/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# PHP
+vendor/
+composer.lock

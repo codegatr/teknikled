@@ -1,0 +1,19 @@
+{
+    "name": "TeknikLED Kurumsal",
+    "slug": "teknikled",
+    "version": "0.1.0",
+    "build": "2026-04-20",
+    "php_min": "8.3",
+    "author": "CODEGA",
+    "author_url": "https://codega.com.tr",
+    "repo": "https://github.com/codegatr/teknikled",
+    "update_url": "https://api.github.com/repos/codegatr/teknikled/releases/latest",
+    "description": "TeknikLED - LED karkas, masa, kursu ve poster kasa uretimi kurumsal sitesi",
+    "languages": ["tr", "en", "ar"],
+    "features": {
+        "ecommerce": false,
+        "teklif": true,
+        "multilang": true,
+        "rtl": true
+    }
+}
