@@ -185,8 +185,18 @@ class Updater {
             }
 
             try {
-                // Native PDO driver multi-statement destekler (emulate=false oldugunda da)
-                db()->exec($sql);
+                // Migration SQL'i guvenli calistir: query() ile rowset'leri tuketmek
+                // unbuffered query hatalarini onler (ileride SELECT, CALL gibi
+                // sonuc donduren statement gelirse bile)
+                $stmt = db()->query($sql);
+                if ($stmt !== false) {
+                    // Tum rowset'leri tuket (SELECT, CALL sonuclari varsa temizle)
+                    do {
+                        $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    } while ($stmt->nextRowset());
+                    $stmt->closeCursor();
+                    $stmt = null;  // acik cursor kalmasin
+                }
                 db_ekle('_migrations', ['ad' => $ad, 'sonuc' => 'basarili']);
                 $sonuc['uygulanan'][] = $ad;
             } catch (Throwable $e) {
