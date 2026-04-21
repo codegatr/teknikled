@@ -183,4 +183,15 @@
     requestAnimationFrame(tik);
   }
 
+  // Kategori kartlarinda mouse-track spotlight
+  document.querySelectorAll('.kat-kart').forEach(function (kart) {
+    kart.addEventListener('mousemove', function (e) {
+      var rect = kart.getBoundingClientRect();
+      var x = ((e.clientX - rect.left) / rect.width) * 100;
+      var y = ((e.clientY - rect.top) / rect.height) * 100;
+      kart.style.setProperty('--mx', x + '%');
+      kart.style.setProperty('--my', y + '%');
+    });
+  });
+
 })();

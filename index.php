@@ -490,85 +490,65 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
     <?php endif; ?>
 
     <section class="hero">
-      <canvas class="hero-canvas" id="heroCanvas"></canvas>
+      <!-- Sahne grid (perspektifli LED pixel pattern altta) -->
+      <div class="sahne-grid"></div>
+
+      <!-- Volumetric spotlight isiklari -->
+      <div class="sahne-isiklari">
+        <div class="sahne-isik isik-1"></div>
+        <div class="sahne-isik isik-2"></div>
+        <div class="sahne-isik isik-3"></div>
+        <div class="sahne-isik isik-4"></div>
+        <div class="sahne-isik isik-5"></div>
+      </div>
+
+      <!-- Ucusan isik parcaciklari -->
+      <div class="parcaciklar" id="parcaciklar"></div>
+
       <div class="sarmal hero-sarmal">
         <div class="hero-metin">
-          <div class="hero-rozet">TeknikLED · P1.86 / P2.5 · Konya</div>
+          <div class="hero-rozet"><?= e(dil() === 'en' ? 'Live Since 2020 · Konya/Turkey' : (dil() === 'ar' ? 'منذ 2020 · قونيا، تركيا' : 'Canlı Yayında · Konya/Türkiye')) ?></div>
           <h1><?= e($heroBaslik) ?></h1>
           <p class="hero-alt"><?= e($heroAlt) ?></p>
           <div class="hero-btn">
-            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk btn-buyuk"><?= e(t('home.hero_cta')) ?> →</a>
-            <a href="<?= e(url('urunler')) ?>" class="btn btn-anahat btn-buyuk"><?= e(t('menu.urunler')) ?></a>
+            <a href="<?= e(url('teklif')) ?>" class="btn btn-renk"><?= e(t('home.hero_cta')) ?> →</a>
+            <a href="<?= e(url('urunler')) ?>" class="btn btn-anahat"><?= e(t('menu.urunler')) ?></a>
           </div>
         </div>
         <div class="hero-gorsel">
-          <div class="hero-rgb">
-            <span class="rgb-r">R</span><span class="rgb-g">G</span><span class="rgb-b">B</span>
-          </div>
+          <img src="<?= e(upload('slider/03-led-kursu.png')) ?>" alt="TeknikLED" loading="eager">
         </div>
       </div>
+
+      <!-- Scroll ipucu -->
+      <div class="hero-kaydir"><?= e(dil() === 'en' ? 'Scroll' : (dil() === 'ar' ? 'مرر' : 'Kaydır')) ?></div>
     </section>
 
     <script>
-    // Hero LED Matrix canvas animasyonu
+    // Ucusan isik parcaciklari olustur
     (function() {
-      var canvas = document.getElementById('heroCanvas');
-      if (!canvas || !canvas.getContext) return;
-      var ctx = canvas.getContext('2d');
-      var W = 0, H = 0, dpr = window.devicePixelRatio || 1;
-      var cols = 0, rows = 0;
-      var cellSize = 24;
-      var dots = [];
-      var colors = ['#ff3b6b', '#00ff99', '#00d4ff'];
-
-      function boyutla() {
-        var rect = canvas.getBoundingClientRect();
-        W = rect.width; H = rect.height;
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        ctx.scale(dpr, dpr);
-        cols = Math.ceil(W / cellSize);
-        rows = Math.ceil(H / cellSize);
-        olustur();
+      var alan = document.getElementById('parcaciklar');
+      if (!alan) return;
+      var renkler = ['#ff2a7a', '#7b2eff', '#00e0ff', '#00ff88', '#ff6b00'];
+      var adet = 28;
+      for (var i = 0; i < adet; i++) {
+        var p = document.createElement('div');
+        p.className = 'parcacik';
+        p.style.left = (Math.random() * 100) + '%';
+        p.style.color = renkler[Math.floor(Math.random() * renkler.length)];
+        p.style.animationDelay = (Math.random() * 12) + 's';
+        p.style.animationDuration = (9 + Math.random() * 8) + 's';
+        p.style.setProperty('--dx', (Math.random() * 200 - 100) + 'px');
+        p.style.width = (2 + Math.random() * 3) + 'px';
+        p.style.height = p.style.width;
+        alan.appendChild(p);
       }
-      function olustur() {
-        dots = [];
-        for (var r = 0; r < rows; r++) {
-          for (var c = 0; c < cols; c++) {
-            dots.push({
-              x: c * cellSize + cellSize / 2,
-              y: r * cellSize + cellSize / 2,
-              base: 0.03 + Math.random() * 0.08,
-              phase: Math.random() * Math.PI * 2,
-              speed: 0.0005 + Math.random() * 0.0015,
-              color: colors[Math.floor(Math.random() * 3)],
-              size: 1 + Math.random() * 1.5
-            });
-          }
-        }
-      }
-      function ciz(t) {
-        ctx.clearRect(0, 0, W, H);
-        for (var i = 0; i < dots.length; i++) {
-          var d = dots[i];
-          var a = d.base + Math.sin(t * d.speed + d.phase) * d.base;
-          if (a < 0.02) continue;
-          ctx.beginPath();
-          ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
-          ctx.fillStyle = d.color;
-          ctx.globalAlpha = Math.min(a, 0.5);
-          ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-      }
-      function dongu(t) {
-        ciz(t);
-        requestAnimationFrame(dongu);
-      }
-      window.addEventListener('resize', boyutla);
-      boyutla();
-      requestAnimationFrame(dongu);
     })();
+    </script>
+
+    <script>
+    // Hero LED Matrix canvas animasyonu - KALDIRILDI v0.2.4'te
+    // Yerine CSS-tabanli sahne isiklari geldi
     </script>
 
     <!-- ISTATISTIK -->
@@ -604,12 +584,14 @@ function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $
         </div>
         <div class="kategori-izgara">
           <?php foreach ($kategoriler as $i => $k): ?>
-            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="kat-kart fade-in-up" data-num="<?= str_pad((string)($i+1), 2, '0', STR_PAD_LEFT) ?>">
+            <a href="<?= e(url('urunler/' . $k['slug'])) ?>" class="kat-kart fade-in-up">
+              <span class="kat-num">MODÜL <?= str_pad((string)($i+1), 2, '0', STR_PAD_LEFT) ?></span>
               <div class="kat-ikon"><?= e($k['ikon'] ?: '◈') ?></div>
               <h3><?= e($k[$adKol] ?? $k['ad_tr']) ?></h3>
               <?php if (!empty($k['aciklama_tr']) || !empty($k[$acKol])): ?>
                 <p><?= e(mb_substr($k[$acKol] ?? $k['aciklama_tr'] ?? '', 0, 100)) ?>...</p>
               <?php endif; ?>
+              <span class="kat-ok"><?= e(t('genel.detay')) ?></span>
             </a>
           <?php endforeach; ?>
         </div>
