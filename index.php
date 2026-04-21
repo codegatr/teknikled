@@ -387,8 +387,19 @@ switch ($tipi) {
 // =================================================================
 function _view_anasayfa(array $veri, array $kategoriler, string $adKol, string $ozKol, string $acKol, string $musKol): void {
     $lang = dil();
-    $heroBaslik = ayar('hero_baslik_' . $lang, ayar('hero_baslik_tr'));
-    $heroAlt    = ayar('hero_alt_' . $lang, ayar('hero_alt_tr'));
+    $heroBaslik = ayar('hero_baslik_' . $lang, '') ?: ayar('hero_baslik_tr', '');
+    if ($heroBaslik === '') {
+        // DB'de yoksa guvenli fallback
+        $heroBaslik = $lang === 'en'
+            ? 'Next Generation Solutions in LED Technology'
+            : ($lang === 'ar' ? 'حلول الجيل القادم في تقنية LED' : 'LED Teknolojisinde Yeni Nesil Çözümler');
+    }
+    $heroAlt = ayar('hero_alt_' . $lang, '') ?: ayar('hero_alt_tr', '');
+    if ($heroAlt === '') {
+        $heroAlt = $lang === 'en'
+            ? 'Design-registered modular frame, LED table, LED podium, LED poster and CNC case manufacturing. Konya-based, 100% local production.'
+            : ($lang === 'ar' ? 'تصنيع الإطارات المعيارية المسجلة وطاولات LED ومنابر LED.' : 'Tasarım tescilli modüler karkas, LED masa, LED kürsü, LED poster kasa ve CNC kasa üretimi. Konya merkezli, %100 yerli üretim.');
+    }
 
     // Slider kayitlari (aktif olanlar)
     try {
