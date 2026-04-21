@@ -113,6 +113,10 @@ class Updater {
         // Kopyala (korunan dosyalar haric)
         $sayac = self::kopyala($kaynak, __DIR__ . '/..');
 
+        // Yapimci-dosyalari/uploads/... yolundaki seed/kurulum dosyalarini
+        // uploads/ altina merge et (uploads normalde korunur ama bu yol istisnadir)
+        $yapimciSayac = self::yapimciDosyalariniUygula($kaynak, __DIR__ . '/..');
+
         // Migrationlari uygula (dosya kopyalamasindan SONRA, cunku yeni migration
         // dosyalari kopyalama sirasinda gelmis olur)
         $migrationSonuc = self::migrationlariUygula();
@@ -124,6 +128,7 @@ class Updater {
         return [
             'basari'      => true,
             'kopyalanan'  => $sayac,
+            'yapimci'     => $yapimciSayac,
             'migration'   => $migrationSonuc,
         ];
     }
@@ -316,7 +321,49 @@ class Updater {
                     break;
                 }
             }
+            // 'yapimci-dosyalari/' klasoru de normal kopyalamaya dahil edilmez
+            // (ayri bir pass ile 'uploads/' altina merge edilecek)
+            if (str_starts_with($bagimli, 'yapimci-dosyalari/') || $bagimli === 'yapimci-dosyalari') {
+                $atla = true;
+            }
             if ($atla) continue;
+
+            $hedefYol = $hedef . '/' . $bagimli;
+            if ($dosya->isDir()) {
+                if (!is_dir($hedefYol)) @mkdir($hedefYol, 0755, true);
+            } else {
+                @mkdir(dirname($hedefYol), 0755, true);
+                if (@copy($dosya->getPathname(), $hedefYol)) $sayac++;
+            }
+        }
+        return $sayac;
+    }
+
+    /**
+     * yapimci-dosyalari/ klasorunu uploads/ altina merge eder.
+     * Bu yol seed/kurulum dosyalari icindir (slider banner, kategori gorselleri vb.)
+     * Kullanici yuklediklerinin uzerine yazmaz - sadece 'yapimci-dosyalari/'
+     * icinde bulunan dosyalari uploads/'a kopyalar. Kullanici kendi dosyalarini
+     * uploads/ altina yuklediginde bu rota dokunmaz.
+     * Donus: kopyalanan dosya sayisi.
+     */
+    private static function yapimciDosyalariniUygula(string $kaynak, string $hedef): int {
+        $yapimciDir = $kaynak . '/yapimci-dosyalari';
+        if (!is_dir($yapimciDir)) return 0;
+
+        $sayac = 0;
+        $ri = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($yapimciDir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($ri as $dosya) {
+            $bagimli = substr($dosya->getPathname(), strlen($yapimciDir) + 1);
+            $bagimli = str_replace('\\', '/', $bagimli);
+            if ($bagimli === '') continue;
+
+            // Sadece uploads/ altina yaz - baska yol varsa atla (guvenlik)
+            if (!str_starts_with($bagimli, 'uploads/')) continue;
 
             $hedefYol = $hedef . '/' . $bagimli;
             if ($dosya->isDir()) {

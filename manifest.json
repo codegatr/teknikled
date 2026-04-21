@@ -1,7 +1,7 @@
 {
     "name": "TeknikLED Kurumsal",
     "slug": "teknikled",
-    "version": "0.2.8",
+    "version": "0.2.9",
     "build": "2026-04-21",
     "php_min": "8.3",
     "author": "CODEGA",

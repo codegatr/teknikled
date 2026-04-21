@@ -2167,7 +2167,11 @@ function _yp_guncelle(): void {
                         if (!empty($mig['hata'])) {
                             $migMsj .= ' MIGRATION HATASI: ' . $mig['hata'];
                         }
-                        $bildirim = 'Guncelleme uygulandi. ' . (int)($uyg['kopyalanan'] ?? 0) . ' dosya yenilendi.' . $migMsj;
+                        $bildirim = 'Guncelleme uygulandi. ' . (int)($uyg['kopyalanan'] ?? 0) . ' dosya yenilendi.';
+                        if (!empty($uyg['yapimci']) && (int)$uyg['yapimci'] > 0) {
+                            $bildirim .= ' ' . (int)$uyg['yapimci'] . ' yapimci dosyasi (uploads/) guncellendi.';
+                        }
+                        $bildirim .= $migMsj;
                         if (!empty($mig['hata'])) {
                             flash_ekle('hata', $bildirim);
                         } else {
